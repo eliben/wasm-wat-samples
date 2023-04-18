@@ -3,6 +3,7 @@
 // Eli Bendersky [https://eli.thegreenplace.net]
 // This code is in the public domain.
 const fs = require('fs');
+const assert = require('node:assert');
 
 // This object is imported into wasm.
 const importObject = {
@@ -21,5 +22,7 @@ const importObject = {
 
     console.log('times2(12) =>', times2(12));
     console.log('times3(12) =>', times3(12));
-})();
 
+    assert.equal(times2(42), 84);
+    assert.equal(times3(53), 159);
+})();
