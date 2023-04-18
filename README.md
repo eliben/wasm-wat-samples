@@ -5,8 +5,8 @@ Some sample **W**eb**A**ssembly **T**ext programs.
 ## How to run these samples
 
 Unless otherwise stated, each sample consists of a single `.wat` file and an
-accompanying `test.js` file. When the setup is more complicated, the directory
-will contain its own README file with additional instructions.
+accompanying `test.js` file. When the setup is more complicated, the directory's
+own README will have explain what to do.
 
 First, start by compiling the WAT file to WASM with [wabt](https://github.com/WebAssembly/wabt)
 or some other WASM toolchain:
