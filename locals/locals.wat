@@ -51,4 +51,17 @@
         (local.get $x)
         (local.get 3)
     )
+
+    ;; Multiple unnamed locals and parameters can be declared together in a
+    ;; single (param ...) or (local ...) clause.
+    (func (export "multi_decl") (param i32 i32) (result i32 i32 i32 i32)
+        (local i32 i32)
+        (local.set 2 (i32.const 33))
+        (local.set 3 (i32.const 44))
+
+        (local.get 0)
+        (local.get 1)
+        (local.get 2)
+        (local.get 3)
+    )
 )

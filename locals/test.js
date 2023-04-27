@@ -23,6 +23,9 @@ const fs = require('fs');
 
     let r3 = obj.instance.exports.named_by_index(11, 22);
     assert.deepEqual(r3, [11, 22, 88]);
+
+    let r4 = obj.instance.exports.multi_decl(11, 22);
+    assert.deepEqual(r4, [11, 22, 33, 44]);
 })();
 
 
