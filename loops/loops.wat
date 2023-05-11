@@ -22,7 +22,7 @@
         ;; Equivalent to the C loop:
         ;;
         ;; for (i = 0; i < count; i++) {
-        ;;   ...
+        ;;   result += memory[i * 4]
         ;; }
         ;;
         ;; We use a block to enable breaking out of the loop early, and not
@@ -40,7 +40,6 @@
                     (local.get $start)
                     (i32.mul (local.get $i) (i32.const 4))))
 
-            ;; result += memory[read_offset]
             (local.set $result
                 (i32.add
                     (local.get $result)
@@ -60,7 +59,7 @@
     (func (export "rand_multiple_of_10") (result i32)
         (local $n i32)
 
-        ;; Equivalen to the C loop:
+        ;; Equivalent to the C loop:
         ;;
         ;; do {
         ;;   n = rand_i32();
@@ -74,6 +73,34 @@
             (i32.ne (i32.rem_u (local.get $n) (i32.const 10)) (i32.const 0))
             br_if $randloop
         )
+
+        (local.get $n)
+    )
+
+    ;; Calculates the first power of base that's > limit; e.g. for base=2 and
+    ;; limit=1000, the first power that's over the limit is 1024.
+    (func (export "first_power_over_limit") (param $base i32) (param $limit i32) (result i32)
+        (local $n i32)
+        (local.set $n (i32.const 1))
+
+        ;; Equivalent to the C loop:
+        ;;
+        ;; while (n <= limit) {
+        ;;   n *= base
+        ;; }
+        ;; 
+        ;; Like in the 'for' loop case, we don't want to run the loop's body
+        ;; if the condition is not satisfied from the start; this is why the
+        ;; breaking branch is at the very start. The similarity to the 'for'
+        ;; loop is not surprising because a 'for' loop is just syntactic sugar
+        ;; for a 'while' loop (or the other way around!)
+        (loop $powerloop (block $breakpowerloop
+            (i32.gt_s (local.get $n) (local.get $limit))
+            br_if $breakpowerloop
+
+            (local.set $n (i32.mul (local.get $n) (local.get $base)))
+            br $powerloop
+        ))
 
         (local.get $n)
     )

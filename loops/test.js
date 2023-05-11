@@ -38,6 +38,7 @@ const fs = require('fs');
     let obj = await WebAssembly.instantiate(new Uint8Array(bytes), importObject);
     let add_all = obj.instance.exports.add_all;
     let rand_multiple_of_10 = obj.instance.exports.rand_multiple_of_10;
+    let first_power_over_limit = obj.instance.exports.first_power_over_limit;
 
     let result = add_all(startOffset * 4, count);
 
@@ -54,6 +55,12 @@ const fs = require('fs');
         let r10 = rand_multiple_of_10();
         assert.equal(r10 % 10, 0);
     }
+
+    assert.equal(first_power_over_limit(2, 1000), 1024);
+    assert.equal(first_power_over_limit(2, 16), 32);
+    assert.equal(first_power_over_limit(2, 0), 1);
+    assert.equal(first_power_over_limit(3, 25), 27);
+    assert.equal(first_power_over_limit(25, 10000), 15625);
 })();
 
 
