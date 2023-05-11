@@ -7,6 +7,9 @@
     ;; Memory buffer with data imported from the host.
     (import "env" "buffer" (memory 80))
 
+    (import "env" "log_i32" (func $log_i32 (param i32)))
+    (import "env" "rand_i32" (func $rand_i32 (result i32)))
+
     ;; Adds together elements in memory, starting at offset $start (byte offset
     ;; into linear memory), adds the first $count elements, returning the
     ;; result. Assumes each element is an i32 occupying 4 bytes.
@@ -48,5 +51,30 @@
         ))
 
         (local.get $result)
+    )
+
+    ;; Returns a random number that's a multiple of 10, using rand_i32 which
+    ;; just returns random integers.
+    ;; Note: this isn't the most mathematically or algorithmically efficient
+    ;; way to do this, it's just to illustrate a code pattern.
+    (func (export "rand_multiple_of_10") (result i32)
+        (local $n i32)
+
+        ;; Equivalen to the C loop:
+        ;;
+        ;; do {
+        ;;   n = rand_i32();
+        ;; } while (n % 10 != 0)
+        ;;
+        ;; The branch is at the end, not looping back unless a condition is
+        ;; satisfied.
+        (loop $randloop
+            (local.set $n (call $rand_i32))
+        
+            (i32.ne (i32.rem_u (local.get $n) (i32.const 10)) (i32.const 0))
+            br_if $randloop
+        )
+
+        (local.get $n)
     )
 )

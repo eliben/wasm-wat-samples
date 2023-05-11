@@ -15,8 +15,12 @@ const fs = require('fs');
 
     let importObject = {
         env: {
-            log_i32: function (n) {
+            log_i32: n => {
                 console.log(`log i32: ${n}`);
+            },
+
+            rand_i32: () => {
+                return Math.floor(Math.random() * 10000);
             },
 
             buffer: memory
@@ -33,6 +37,7 @@ const fs = require('fs');
 
     let obj = await WebAssembly.instantiate(new Uint8Array(bytes), importObject);
     let add_all = obj.instance.exports.add_all;
+    let rand_multiple_of_10 = obj.instance.exports.rand_multiple_of_10;
 
     let result = add_all(startOffset * 4, count);
 
@@ -43,6 +48,12 @@ const fs = require('fs');
 
     console.log("testing");
     assert.equal(result, want_sum);
+
+    for (let i = 0; i < 100; i++) {
+        // Make sure rand_multiple_of_10 always returns a multiple of 10.
+        let r10 = rand_multiple_of_10();
+        assert.equal(r10 % 10, 0);
+    }
 })();
 
 
