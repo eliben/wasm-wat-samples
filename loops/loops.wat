@@ -17,8 +17,7 @@
         (local $i i32)
         (local $read_offset i32)
         (local $result i32)
-        (local.set $result (i32.const 0))
-
+        
         ;; Equivalent to the C loop:
         ;;
         ;; for (i = 0; i < count; i++) {

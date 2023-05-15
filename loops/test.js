@@ -62,5 +62,3 @@ const fs = require('fs');
     assert.equal(first_power_over_limit(3, 25), 27);
     assert.equal(first_power_over_limit(25, 10000), 15625);
 })();
-
-
