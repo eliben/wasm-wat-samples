@@ -46,4 +46,8 @@ function memdump(mem, start, len) {
 
     let wasm_size = obj.instance.exports.wasm_size;
     assert.equal(wasm_size(), 9);
+
+    let wasm_fill = obj.instance.exports.wasm_fill;
+    wasm_fill(16, 0x22, 8);
+    memdump(mem, 0, 64);
 })();

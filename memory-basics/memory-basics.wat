@@ -31,4 +31,9 @@
     (func (export "wasm_size") (result i32)
         memory.size
     )
+
+    ;; Fill memory starting at $start with $n instance of byte $val.
+    (func (export "wasm_fill") (param $start i32) (param $val i32) (param $n i32)
+        (memory.fill (local.get $start) (local.get $val) (local.get $n))
+    )
 )
