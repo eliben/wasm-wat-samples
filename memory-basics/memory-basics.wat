@@ -23,7 +23,12 @@
 
     ;; Grow the linear memory by $delta pages; return the size (in pages) of
     ;; memory before it was increased.
-    (func (export "do_grow_from_wasm") (param $delta i32) (result i32)
+    (func (export "wasm_grow") (param $delta i32) (result i32)
         (memory.grow (local.get $delta))
+    )
+
+    ;; Report the size of wasm's linear memory, in pages.
+    (func (export "wasm_size") (result i32)
+        memory.size
     )
 )

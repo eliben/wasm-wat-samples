@@ -31,16 +31,19 @@ function memdump(mem, start, len) {
     memdump(mem, 0, 64);
 
     // Use wasm's own memory.grow to grow memory by 5 pages.
-    let wasmgrow = obj.instance.exports.do_grow_from_wasm;
-    let sz = wasmgrow(5);
+    let wasm_grow = obj.instance.exports.wasm_grow;
+    let sz = wasm_grow(5);
     assert.equal(sz, 1);
     assert.equal(mem.buffer.byteLength, 6 * 64 * 1024);
+
+    // The memory's contents are preserved after growing it.
     memdump(mem, 0, 64);
 
     // Now further grow memory from the host.
     mem.grow(3);
     assert.equal(mem.buffer.byteLength, 9 * 64 * 1024);
     memdump(mem, 0, 64);
+
+    let wasm_size = obj.instance.exports.wasm_size;
+    assert.equal(wasm_size(), 9);
 })();
-
-
