@@ -5,19 +5,42 @@
 const assert = require('node:assert');
 const fs = require('fs');
 
+
+// Dumps a WebAssembly.Memory object's contents starting at `start`, for `len`
+// bytes in groups of 16.
+function memdump(mem, start, len) {
+    let view = new Uint8Array(mem.buffer);
+    for (let i = 0; i < len; i++) {
+        let index = start + i;
+        process.stdout.write(`${view[index].toString(16).toUpperCase().padStart(2, '0')} `);
+        if ((index + 1) % 16 === 0) {
+            console.log();
+        }
+    }
+    console.log();
+}
+
 (async () => {
     // Load the WASM file and instantiate it.
     const bytes = fs.readFileSync(__dirname + '/memory-basics.wasm');
     let obj = await WebAssembly.instantiate(new Uint8Array(bytes));
 
+    // Get wasm's memory and check its size.
     let mem = obj.instance.exports.memory;
-    console.log(`Initial memory size: ${mem.buffer.byteLength}`);
+    assert.equal(mem.buffer.byteLength, 64 * 1024);
+    memdump(mem, 0, 64);
 
-    let view = new Uint8Array(mem.buffer);
-    for (let i = 0; i < 64; i++) {
-        console.log(`${view[i].toString(16).toUpperCase().padStart(2, '0')} `);
-    }
+    // Use wasm's own memory.grow to grow memory by 5 pages.
+    let wasmgrow = obj.instance.exports.do_grow_from_wasm;
+    let sz = wasmgrow(5);
+    assert.equal(sz, 1);
+    assert.equal(mem.buffer.byteLength, 6 * 64 * 1024);
+    memdump(mem, 0, 64);
 
+    // Now further grow memory from the host.
+    mem.grow(3);
+    assert.equal(mem.buffer.byteLength, 9 * 64 * 1024);
+    memdump(mem, 0, 64);
 })();
 
 

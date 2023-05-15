@@ -1,4 +1,4 @@
-;; 
+;; Some basics of creating, initializing and growing a WASM linear memory.
 ;;
 ;; Eli Bendersky [https://eli.thegreenplace.net]
 ;; This code is in the public domain.
@@ -21,6 +21,8 @@
         "\01\03\05\07\09\0B\0D\0F"
     )
 
+    ;; Grow the linear memory by $delta pages; return the size (in pages) of
+    ;; memory before it was increased.
     (func (export "do_grow_from_wasm") (param $delta i32) (result i32)
         (memory.grow (local.get $delta))
     )
