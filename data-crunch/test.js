@@ -36,12 +36,13 @@ const fs = require('fs');
 
     // Initialize data in memory.
     for (let i = 0; i < count; i++) {
-        let mem_f32_offset = startOffset + i * 3;
+        let mem_f32_offset = startOffset + i * 4;
 
-        // Populate x,y,z
+        // Populate x,y,z,w
         mem_f32[mem_f32_offset] = i * 10 + 5;
         mem_f32[mem_f32_offset + 1] = i * 11 + 6;
         mem_f32[mem_f32_offset + 2] = i * 12 + 7;
+        mem_f32[mem_f32_offset + 3] = i * 13 + 8;
     }
 
     // Call WASM, passing in parameters scaled to its linear memory.
@@ -51,18 +52,21 @@ const fs = require('fs');
     let destX = mem_f32[destOffset];
     let destY = mem_f32[destOffset + 1];
     let destZ = mem_f32[destOffset + 2];
-    console.log(`result: x=${destX}, y=${destY} z=${destZ}`);
+    let destW = mem_f32[destOffset + 3];
+    console.log(`result: x=${destX}, y=${destY} z=${destZ} w=${destW}`);
 
     // Calculate the same sum on the host and compare.
-    let sumX = 0, sumY = 0, sumZ = 0;
+    let sumX = 0, sumY = 0, sumZ = 0, sumW = 0;
     for (let i = 0; i < count; i++) {
-        let mem_f32_offset = startOffset + i * 3;
+        let mem_f32_offset = startOffset + i * 4;
         sumX += mem_f32[mem_f32_offset];
         sumY += mem_f32[mem_f32_offset + 1];
         sumZ += mem_f32[mem_f32_offset + 2];
+        sumW += mem_f32[mem_f32_offset + 3];
     }
 
     assert.equal(destX, sumX);
     assert.equal(destY, sumY);
     assert.equal(destZ, sumZ);
+    assert.equal(destW, sumW);
 })();
