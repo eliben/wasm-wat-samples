@@ -26,13 +26,15 @@ const fs = require('fs');
     };
 
     let obj = await WebAssembly.instantiate(new Uint8Array(bytes), importObject);
-    let vecadd = obj.instance.exports.do_add;
+    let add_scalar = obj.instance.exports.add_scalar_inst;
+    let add_vector = obj.instance.exports.add_vec_inst;
 
     // These are the parameters we're going to pass to vecadd; they are offsets
     // in the m_f32 view.
     const startOffset = 128;
     const count = 1024;
-    const destOffset = 5000;
+    const destOffset1 = 5000;
+    const destOffset2 = 5100;
 
     // Initialize data in memory.
     for (let i = 0; i < count; i++) {
@@ -46,14 +48,21 @@ const fs = require('fs');
     }
 
     // Call WASM, passing in parameters scaled to its linear memory.
-    vecadd(startOffset * 4, count, destOffset * 4);
+    add_scalar(startOffset * 4, count, destOffset1 * 4);
+    add_vector(startOffset * 4, count, destOffset2 * 4);
 
     // Read results.
-    let destX = mem_f32[destOffset];
-    let destY = mem_f32[destOffset + 1];
-    let destZ = mem_f32[destOffset + 2];
-    let destW = mem_f32[destOffset + 3];
+    let destX = mem_f32[destOffset1];
+    let destY = mem_f32[destOffset1 + 1];
+    let destZ = mem_f32[destOffset1 + 2];
+    let destW = mem_f32[destOffset1 + 3];
     console.log(`result: x=${destX}, y=${destY} z=${destZ} w=${destW}`);
+
+    let destXv = mem_f32[destOffset2];
+    let destYv = mem_f32[destOffset2 + 1];
+    let destZv = mem_f32[destOffset2 + 2];
+    let destWv = mem_f32[destOffset2 + 3];
+    console.log(`result vec: x=${destXv}, y=${destYv} z=${destZv} w=${destWv}`);
 
     // Calculate the same sum on the host and compare.
     let sumX = 0, sumY = 0, sumZ = 0, sumW = 0;
@@ -69,4 +78,9 @@ const fs = require('fs');
     assert.equal(destY, sumY);
     assert.equal(destZ, sumZ);
     assert.equal(destW, sumW);
+
+    assert.equal(destXv, sumX);
+    assert.equal(destYv, sumY);
+    assert.equal(destZv, sumZ);
+    assert.equal(destWv, sumW);
 })();
