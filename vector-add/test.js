@@ -29,8 +29,7 @@ const fs = require('fs');
     let add_scalar = obj.instance.exports.add_scalar_inst;
     let add_vector = obj.instance.exports.add_vec_inst;
 
-    // These are the parameters we're going to pass to vecadd; they are offsets
-    // in the m_f32 view.
+    // These are offsets in the m_f32 view.
     const startOffset = 128;
     const count = 1024;
     const destOffset1 = 5000;
