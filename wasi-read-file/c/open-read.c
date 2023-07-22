@@ -1,4 +1,10 @@
 // Example of using open/read syscalls directly to open and read from a file.
+//
+// To run it, assuming wasi-sdk installed at $WSDK:
+//
+//  $WSDK/bin/clang --sysroot=$WSDK/share/wasi-sysroot open-read.c -o or.wasm
+//  wasmtime run --dir . or.wasm
+//
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
