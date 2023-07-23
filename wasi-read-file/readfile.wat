@@ -4,10 +4,12 @@
     (import "wasi_snapshot_preview1" "fd_write" (func $fd_write (param i32 i32 i32 i32) (result i32)))
     (import "wasi_snapshot_preview1" "fd_prestat_get" (func $fd_prestat_get (param i32 i32) (result i32)))
     (import "wasi_snapshot_preview1" "fd_prestat_dir_name" (func $fd_prestat_dir_name (param i32 i32 i32) (result i32)))
+    (import "wasi_snapshot_preview1" "proc_exit" (func $proc_exit (param i32)))
 
     (memory (export "memory") 1)
 
-    (data (i32.const 8) "hello from wat!")
+    (data (i32.const 7800) "hello from wat!")
+    (data (i32.const 7820) "error")
 
     (func $main (export "_start")
         (local $fdnum i32)
@@ -29,6 +31,8 @@
         drop
 
         (call $println (global.get $prestat_dir_name_buf) (i32.load (global.get $prestat_dir_name_len)))
+
+        (call $die (i32.const 7820) (i32.const 5))
     )
 
     (global $prestat_tag_buf i32 (i32.const 7500))
@@ -61,6 +65,13 @@
             (global.get $fdwrite_ret)
         )
         drop
+    )
+
+    ;; Prints a message (address and len parameters) and exits the process
+    ;; with return code 1.
+    (func $die (param $strptr i32) (param $len i32)
+        (call $println (local.get $strptr) (local.get $len))
+        (call $proc_exit (i32.const 1))
     )
 
     ;; These slots are used as parameters for fd_write, and its return value.
