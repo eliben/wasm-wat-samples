@@ -14,8 +14,8 @@ const { WASI } = require("wasi");
     const outFilename = __dirname + '/test.out'
     let outfd = fs.openSync(outFilename, 'w');
 
-    console.log("dirname is", __dirname);
-
+    // The 'preopens' key maps the root '/' of the WASM module's sandbox to
+    // the current directory, where the module can find its input file.
     const wasi = new WASI({
         version: "preview1",
         preopens: {

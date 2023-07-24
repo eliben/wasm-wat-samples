@@ -1,10 +1,13 @@
+;; This sample shows how to read a file using WASM/WASI.
+;;
+;; Reading a file requires sandbox permissions in WASM. By default, WASM
+;; module cannot access the file system, and they require special permissions
+;; to be granted from the host. The majority of this code deals with obtaining
+;; the "pre-set" directory the host mapped for us, so we can open the file
+;; and read it.
+;;
 ;; Eli Bendersky [https://eli.thegreenplace.net]
 ;; This code is in the public domain.
-
-;; TODO: clean this up, comment out debugging printouts
-;; Also make it work with node in addition to wasmtime?
-;; for node, look at all the preopens -- we have to find the right one
-
 (module
     (import "wasi_snapshot_preview1" "fd_read" (func $fd_read (param i32 i32 i32 i32) (result i32)))
     (import "wasi_snapshot_preview1" "fd_write" (func $fd_write (param i32 i32 i32 i32) (result i32)))
@@ -17,32 +20,42 @@
 
     (func $main (export "_start")
         (local $errno i32)
-        (call $println_number (call $fd_prestat_get (i32.const 3) (global.get $prestat_tag_buf)))
 
-        ;; the tag should be 0, and the length of the preopen dir is at the next word
-        (call $println_number (i32.load (global.get $prestat_tag_buf)))
-        (call $println_number (i32.load (global.get $prestat_dir_name_len)))
+        ;; Call fd_prestat_get to obtain length of dir name at fd=3
+        ;; We pass the pointer to $prestat_tag_buf -- the actual length will
+        ;; be written to the next word in memory, which is $prestat_dir_name_len
+        (local.set $errno
+            (call $fd_prestat_get (i32.const 3) (global.get $prestat_tag_buf)))
+        (if (i32.ne (local.get $errno) (i32.const 0))
+            (then
+                (call $println_number (local.get $errno))
+                (call $die (i32.const 6900) (i32.const 28))))
 
-        (call $fd_prestat_dir_name
-            (i32.const 3)
-            (global.get $prestat_dir_name_buf)
-            (i32.load (global.get $prestat_dir_name_len)))
-        drop ;; TODO check error
+        ;; Call fd_prestat_dir_name to obtain dir name at fd=3, saving it to
+        ;; $fd_prestat_dir_name
+        (local.set $errno
+            (call $fd_prestat_dir_name
+                (i32.const 3)
+                (global.get $prestat_dir_name_buf)
+                (i32.load (global.get $prestat_dir_name_len))))
+        (if (i32.ne (local.get $errno) (i32.const 0))
+            (then
+                (call $println_number (local.get $errno))
+                (call $die (i32.const 6950) (i32.const 33))))
 
-        
-        (call $println (global.get $prestat_dir_name_buf) (i32.load (global.get $prestat_dir_name_len)))
-
-        ;; TODO: this should check for '/'
-
-        ;; Sanity checking of the prestat dir: expect it to be '.' (ASCII 46)
-        ;; (i32.or 
-        ;;     (i32.lt_u (i32.load (global.get $prestat_dir_name_len)) (i32.const 1))
-        ;;     (i32.ne (i32.load8_u (global.get $prestat_dir_name_buf)) (i32.const 46)))
-        ;; if
-        ;;     (call $die (i32.const 7025) (i32.const 49))
-        ;; end
+        ;; Sanity checking of the prestat dir: expect it to start with '/'
+        ;; (ASCII 47)
+        (i32.or
+            (i32.lt_u (i32.load (global.get $prestat_dir_name_len)) (i32.const 1))
+            (i32.ne (i32.load8_u (global.get $prestat_dir_name_buf)) (i32.const 47)))
+        if
+            (call $die (i32.const 7025) (i32.const 49))
+        end
 
         ;; Open the input file using fd=3 as the base directory.
+        ;; This assumes the input file is relative to the base directory.
+        ;; The result of this call will be the fd for the opened file in
+        ;; $path_open_fd_out
         (local.set $errno
             (call $path_open
                 (i32.const 3)           ;; fd=3 as base dir
@@ -54,15 +67,15 @@
                 (i64.const 3)           ;; fd_rights_inheriting: fd_read rights
                 (i32.const 0x0)         ;; fdflags=0
                 (global.get $path_open_fd_out)))
-
-        ;; ... check error
         (if (i32.ne (local.get $errno) (i32.const 0))
             (then
                 (call $println_number (local.get $errno))
                 (call $die (i32.const 7090) (i32.const 37))))
 
-        (call $println_number (i32.load (global.get $path_open_fd_out)))
-        
+        ;; (call $println_number (i32.load (global.get $path_open_fd_out)))
+
+        ;; Populat iovecs for fd_read; we create a single vector with a
+        ;; buffer length of 128
         (i32.store (global.get $read_iovec) (global.get $read_buf))
         (i32.store (i32.add (global.get $read_iovec) (i32.const 4)) (i32.const 128))
 
@@ -72,12 +85,11 @@
                 (global.get $read_iovec)
                 (i32.const 1)
                 (global.get $fdread_ret)))
-        
-        ;; ... check error
         (if (i32.ne (local.get $errno) (i32.const 0))
             (then
                 (call $die (i32.const 7130) (i32.const 29))))
-        
+
+        ;; Print out how many bytes were actually read
         (call $println_number (i32.load (global.get $fdread_ret)))
 
         ;; Print "read from file" header
@@ -87,9 +99,6 @@
         ;; by the fd_read io vector, and use fd_read's "number of bytes read"
         ;; return value for the length.
         (call $println (global.get $read_buf) (global.get $fdread_ret))
-        
-        ;; (call $println_number (i32.load (global.get $path_open_fd_out)))
-        ;; (call $die (i32.const 7820) (i32.const 5))
     )
 
     ;; println prints a string to stdout using WASI, adding a newline.
@@ -160,12 +169,12 @@
         ;;
         ;;                     ^        ^
         ;;  $itoa_out_buf -----|        |---- $writeidx
-        ;;  
+        ;;
         ;;
         ;; $writeidx starts by pointing to $itoa_out_buf+3 and decrements until
         ;; all the digits are populated.
-        (local.set $writeidx 
-            (i32.sub 
+        (local.set $writeidx
+            (i32.sub
                 (i32.add (global.get $itoa_out_buf) (local.get $numlen))
                 (i32.const 1)))
 
@@ -174,7 +183,7 @@
             (local.set $digit (i32.rem_u (local.get $num) (i32.const 10)))
             ;; set the char value from the lookup table of digit chars
             (local.set $dchar (i32.load8_u offset=8000 (local.get $digit)))
-            
+
             ;; mem[writeidx] <- dchar
             (i32.store8 (local.get $writeidx) (local.get $dchar))
 
@@ -195,9 +204,13 @@
             (local.get $numlen))
     )
 
-    (data (i32.const 7000) "hello from wat!")
-    (data (i32.const 7020) "error")
-    (data (i32.const 7025) "error: expect first preopened directory to be '.'")
+    ;;
+    ;; Memory mapping and initialization.
+    ;;
+
+    (data (i32.const 6900) "error: fd_prestat_get failed")
+    (data (i32.const 6950) "error: fd_prestat_dir_name failed")
+    (data (i32.const 7025) "error: expect first preopened directory to be '/'")
     (data (i32.const 7090) "error: unable to path_open input file")
     (data (i32.const 7130) "error: fd_read failed")
     (data (i32.const 7170) "Read from file:\n")
@@ -224,6 +237,7 @@
     (data (i32.const 8010) "\n")
     (global $itoa_out_buf i32 (i32.const 8020))
 
+    ;; Buffer for fd_read
     (global $read_iovec i32 (i32.const 8100))
     (global $fdread_ret i32 (i32.const 8112))
     (global $read_buf i32 (i32.const 8120))
