@@ -3,6 +3,7 @@
 
 ;; TODO: clean this up, comment out debugging printouts
 ;; Also make it work with node in addition to wasmtime?
+;; for node, look at all the preopens -- we have to find the right one
 
 (module
     (import "wasi_snapshot_preview1" "fd_read" (func $fd_read (param i32 i32 i32 i32) (result i32)))
@@ -15,11 +16,8 @@
     (memory (export "memory") 1)
 
     (func $main (export "_start")
-        (local $fdnum i32)
-        (call $println_number (i32.const 77))
+        (local $errno i32)
         (call $println_number (call $fd_prestat_get (i32.const 3) (global.get $prestat_tag_buf)))
-
-        ;; TODO: need some sort of "error abort" functionality here
 
         ;; the tag should be 0, and the length of the preopen dir is at the next word
         (call $println_number (i32.load (global.get $prestat_tag_buf)))
@@ -31,52 +29,54 @@
             (i32.load (global.get $prestat_dir_name_len)))
         drop ;; TODO check error
 
+        
         (call $println (global.get $prestat_dir_name_buf) (i32.load (global.get $prestat_dir_name_len)))
 
+        ;; TODO: this should check for '/'
+        
         ;; Sanity checking of the prestat dir: expect it to be '.' (ASCII 46)
-        (i32.or 
-            (i32.ne (i32.load (global.get $prestat_dir_name_len)) (i32.const 1))
-            (i32.ne (i32.load8_u (global.get $prestat_dir_name_buf)) (i32.const 46)))
-        if
-            (call $die (i32.const 7025) (i32.const 49))
-        end
+        ;; (i32.or 
+        ;;     (i32.lt_u (i32.load (global.get $prestat_dir_name_len)) (i32.const 1))
+        ;;     (i32.ne (i32.load8_u (global.get $prestat_dir_name_buf)) (i32.const 46)))
+        ;; if
+        ;;     (call $die (i32.const 7025) (i32.const 49))
+        ;; end
 
         ;; Open the input file using fd=3 as the base directory.
-        (call $path_open
-            (i32.const 3)           ;; fd=3 as base dir
-            (i32.const 0x1)         ;; lookupflags: symlink_follow=1
-            (i32.const 7940)        ;; file name in memory
-            (i32.const 10)          ;; length of file name
-            (i32.const 0x0)         ;; oflags=0
-            (i64.const 0xffffffff)  ;; fd_rights_base: grant all rights
-            (i64.const 0xffffffff)  ;; fd_rights_inheriting: all rights
-            (i32.const 0x0)         ;; fdflags=0
-            (global.get $path_open_fd_out))
+        (local.set $errno
+            (call $path_open
+                (i32.const 3)           ;; fd=3 as base dir
+                (i32.const 0x1)         ;; lookupflags: symlink_follow=1
+                (i32.const 7940)        ;; file name in memory
+                (i32.const 10)          ;; length of file name
+                (i32.const 0x0)         ;; oflags=0
+                (i64.const 0xffffffff)  ;; fd_rights_base: grant all rights
+                (i64.const 0xffffffff)  ;; fd_rights_inheriting: all rights
+                (i32.const 0x0)         ;; fdflags=0
+                (global.get $path_open_fd_out)))
 
         ;; ... check error
-        i32.const 0
-        i32.ne
-        if
-            (call $die (i32.const 7090) (i32.const 37))
-        end
+        (if (i32.ne (local.get $errno) (i32.const 0))
+            (then
+                (call $println_number (local.get $errno))
+                (call $die (i32.const 7090) (i32.const 37))))
 
         (call $println_number (i32.load (global.get $path_open_fd_out)))
         
         (i32.store (global.get $read_iovec) (global.get $read_buf))
         (i32.store (i32.add (global.get $read_iovec) (i32.const 4)) (i32.const 128))
 
-        (call $fd_read
-            (i32.load (global.get $path_open_fd_out))
-            (global.get $read_iovec)
-            (i32.const 1)
-            (global.get $fdread_ret))
-
+        (local.set $errno
+            (call $fd_read
+                (i32.load (global.get $path_open_fd_out))
+                (global.get $read_iovec)
+                (i32.const 1)
+                (global.get $fdread_ret)))
+        
         ;; ... check error
-        i32.const 0
-        i32.ne
-        if
-            (call $die (i32.const 7130) (i32.const 29))
-        end
+        (if (i32.ne (local.get $errno) (i32.const 0))
+            (then
+                (call $die (i32.const 7130) (i32.const 29))))
         
         (call $println_number (i32.load (global.get $fdread_ret)))
 
@@ -195,7 +195,6 @@
             (local.get $numlen))
     )
 
-    ;; Strings we print out
     (data (i32.const 7000) "hello from wat!")
     (data (i32.const 7020) "error")
     (data (i32.const 7025) "error: expect first preopened directory to be '.'")
