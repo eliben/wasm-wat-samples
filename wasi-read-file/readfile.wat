@@ -4,15 +4,14 @@
     (import "wasi_snapshot_preview1" "fd_write" (func $fd_write (param i32 i32 i32 i32) (result i32)))
     (import "wasi_snapshot_preview1" "fd_prestat_get" (func $fd_prestat_get (param i32 i32) (result i32)))
     (import "wasi_snapshot_preview1" "fd_prestat_dir_name" (func $fd_prestat_dir_name (param i32 i32 i32) (result i32)))
+    (import "wasi_snapshot_preview1" "path_open" (func $path_open (param i32 i32 i32 i32 i32 i32 i32 i32) (result i32)))
     (import "wasi_snapshot_preview1" "proc_exit" (func $proc_exit (param i32)))
 
     (memory (export "memory") 1)
 
     (func $main (export "_start")
         (local $fdnum i32)
-        (call $println (i32.const 8) (i32.const 15))
         (call $println_number (i32.const 77))
-
         (call $println_number (call $fd_prestat_get (i32.const 3) (global.get $prestat_tag_buf)))
 
         ;; TODO: need some sort of "error abort" functionality here
@@ -29,7 +28,18 @@
 
         (call $println (global.get $prestat_dir_name_buf) (i32.load (global.get $prestat_dir_name_len)))
 
-        (call $die (i32.const 7820) (i32.const 5))
+        ;; Sanity checking of the prestat dir: expect it to be '.' (ASCII 46)
+        (i32.or 
+            (i32.ne (i32.load (global.get $prestat_dir_name_len)) (i32.const 1))
+            (i32.ne (i32.load8_u (global.get $prestat_dir_name_buf)) (i32.const 46)))
+        if
+            (call $die (i32.const 7025) (i32.const 49))
+        end
+
+        ;; TODO call path_open here, starting with fd 3 which is the right dir
+        
+
+        ;; (call $die (i32.const 7820) (i32.const 5))
     )
 
     ;; println prints a string to stdout using WASI, adding a newline.
@@ -135,17 +145,26 @@
             (local.get $numlen))
     )
 
-    (global $prestat_tag_buf i32 (i32.const 7500))
-    (global $prestat_dir_name_len i32 (i32.const 7504))
-    (global $prestat_dir_name_buf i32 (i32.const 7516))
-
-    (data (i32.const 7800) "hello from wat!")
-    (data (i32.const 7820) "error")
+    ;; Strings we print out
+    (data (i32.const 7000) "hello from wat!")
+    (data (i32.const 7020) "error")
+    (data (i32.const 7025) "error: expect first preopened directory to be '.'")
 
     ;; These slots are used as parameters for fd_write, and its return value.
     (global $datavec_addr i32 (i32.const 7900))
     (global $datavec_len i32 (i32.const 7904))
     (global $fdwrite_ret i32 (i32.const 7908))
+
+    ;; For prestat calls
+    (global $prestat_tag_buf i32 (i32.const 7920))
+    (global $prestat_dir_name_len i32 (i32.const 7924))
+    (global $prestat_dir_name_buf i32 (i32.const 7936))
+
+    ;; File name
+    (data (i32.const 7940) "sample.txt")
+
+    ;; Output buf for path_open to write fd into
+    (global $path_open_fd_out i32 (i32.const 7950))
 
     ;; Using some memory for a number-->digit ASCII lookup-table, and then the
     ;; space for writing the result of $itoa.
