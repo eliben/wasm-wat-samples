@@ -3,7 +3,7 @@
 // To run it, assuming wasi-sdk installed at $WSDK:
 //
 //  $WSDK/bin/clang --sysroot=$WSDK/share/wasi-sysroot open-read.c -o or.wasm
-//  wasmtime run --dir . or.wasm
+//  wasmtime run --mapdir /::. or.wasm
 //
 #include <fcntl.h>
 #include <unistd.h>

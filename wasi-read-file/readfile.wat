@@ -33,7 +33,7 @@
         (call $println (global.get $prestat_dir_name_buf) (i32.load (global.get $prestat_dir_name_len)))
 
         ;; TODO: this should check for '/'
-        
+
         ;; Sanity checking of the prestat dir: expect it to be '.' (ASCII 46)
         ;; (i32.or 
         ;;     (i32.lt_u (i32.load (global.get $prestat_dir_name_len)) (i32.const 1))
@@ -50,8 +50,8 @@
                 (i32.const 7940)        ;; file name in memory
                 (i32.const 10)          ;; length of file name
                 (i32.const 0x0)         ;; oflags=0
-                (i64.const 0xffffffff)  ;; fd_rights_base: grant all rights
-                (i64.const 0xffffffff)  ;; fd_rights_inheriting: all rights
+                (i64.const 3)           ;; fd_rights_base: fd_read rights
+                (i64.const 3)           ;; fd_rights_inheriting: fd_read rights
                 (i32.const 0x0)         ;; fdflags=0
                 (global.get $path_open_fd_out)))
 
