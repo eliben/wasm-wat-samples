@@ -8,9 +8,6 @@
 
     (memory (export "memory") 1)
 
-    (data (i32.const 7800) "hello from wat!")
-    (data (i32.const 7820) "error")
-
     (func $main (export "_start")
         (local $fdnum i32)
         (call $println (i32.const 8) (i32.const 15))
@@ -34,10 +31,6 @@
 
         (call $die (i32.const 7820) (i32.const 5))
     )
-
-    (global $prestat_tag_buf i32 (i32.const 7500))
-    (global $prestat_dir_name_len i32 (i32.const 7504))
-    (global $prestat_dir_name_buf i32 (i32.const 7516))
 
     ;; println prints a string to stdout using WASI, adding a newline.
     ;; It takes the string's address and length as parameters.
@@ -73,17 +66,6 @@
         (call $println (local.get $strptr) (local.get $len))
         (call $proc_exit (i32.const 1))
     )
-
-    ;; These slots are used as parameters for fd_write, and its return value.
-    (global $datavec_addr i32 (i32.const 7900))
-    (global $datavec_len i32 (i32.const 7904))
-    (global $fdwrite_ret i32 (i32.const 7908))
-
-    ;; Using some memory for a number-->digit ASCII lookup-table, and then the
-    ;; space for writing the result of $itoa.
-    (data (i32.const 8000) "0123456789")
-    (data (i32.const 8010) "\n")
-    (global $itoa_out_buf i32 (i32.const 8020))
 
     ;; println_number prints a number as a string to stdout, adding a newline.
     ;; It takes the number as parameter.
@@ -152,4 +134,22 @@
             (global.get $itoa_out_buf)
             (local.get $numlen))
     )
+
+    (global $prestat_tag_buf i32 (i32.const 7500))
+    (global $prestat_dir_name_len i32 (i32.const 7504))
+    (global $prestat_dir_name_buf i32 (i32.const 7516))
+
+    (data (i32.const 7800) "hello from wat!")
+    (data (i32.const 7820) "error")
+
+    ;; These slots are used as parameters for fd_write, and its return value.
+    (global $datavec_addr i32 (i32.const 7900))
+    (global $datavec_len i32 (i32.const 7904))
+    (global $fdwrite_ret i32 (i32.const 7908))
+
+    ;; Using some memory for a number-->digit ASCII lookup-table, and then the
+    ;; space for writing the result of $itoa.
+    (data (i32.const 8000) "0123456789")
+    (data (i32.const 8010) "\n")
+    (global $itoa_out_buf i32 (i32.const 8020))
 )
