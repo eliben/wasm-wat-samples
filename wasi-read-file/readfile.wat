@@ -1,6 +1,11 @@
 ;; Eli Bendersky [https://eli.thegreenplace.net]
 ;; This code is in the public domain.
+
+;; TODO: clean this up, comment out debugging printouts
+;; Also make it work with node in addition to wasmtime?
+
 (module
+    (import "wasi_snapshot_preview1" "fd_read" (func $fd_read (param i32 i32 i32 i32) (result i32)))
     (import "wasi_snapshot_preview1" "fd_write" (func $fd_write (param i32 i32 i32 i32) (result i32)))
     (import "wasi_snapshot_preview1" "fd_prestat_get" (func $fd_prestat_get (param i32 i32) (result i32)))
     (import "wasi_snapshot_preview1" "fd_prestat_dir_name" (func $fd_prestat_dir_name (param i32 i32 i32) (result i32)))
@@ -43,8 +48,8 @@
             (i32.const 7940)        ;; file name in memory
             (i32.const 10)          ;; length of file name
             (i32.const 0x0)         ;; oflags=0
-            (i64.const 0x1)         ;; fd_rights_base=fd_read
-            (i64.const 0x1)         ;; fd_rights_inheriting=fd_read
+            (i64.const 0xffffffff)  ;; fd_rights_base: grant all rights
+            (i64.const 0xffffffff)  ;; fd_rights_inheriting: all rights
             (i32.const 0x0)         ;; fdflags=0
             (global.get $path_open_fd_out))
 
@@ -54,6 +59,34 @@
         if
             (call $die (i32.const 7090) (i32.const 37))
         end
+
+        (call $println_number (i32.load (global.get $path_open_fd_out)))
+        
+        (i32.store (global.get $read_iovec) (global.get $read_buf))
+        (i32.store (i32.add (global.get $read_iovec) (i32.const 4)) (i32.const 128))
+
+        (call $fd_read
+            (i32.load (global.get $path_open_fd_out))
+            (global.get $read_iovec)
+            (i32.const 1)
+            (global.get $fdread_ret))
+
+        ;; ... check error
+        i32.const 0
+        i32.ne
+        if
+            (call $die (i32.const 7130) (i32.const 29))
+        end
+        
+        (call $println_number (i32.load (global.get $fdread_ret)))
+
+        ;; Print "read from file" header
+        (call $println (i32.const 7170) (i32.const 17))
+
+        ;; ... now print what was actually read; the read buffer was pointed to
+        ;; by the fd_read io vector, and use fd_read's "number of bytes read"
+        ;; return value for the length.
+        (call $println (global.get $read_buf) (global.get $fdread_ret))
         
         ;; (call $println_number (i32.load (global.get $path_open_fd_out)))
         ;; (call $die (i32.const 7820) (i32.const 5))
@@ -167,6 +200,8 @@
     (data (i32.const 7020) "error")
     (data (i32.const 7025) "error: expect first preopened directory to be '.'")
     (data (i32.const 7090) "error: unable to path_open input file")
+    (data (i32.const 7130) "error: fd_read failed")
+    (data (i32.const 7170) "Read from file:\n")
 
     ;; These slots are used as parameters for fd_write, and its return value.
     (global $datavec_addr i32 (i32.const 7900))
@@ -189,4 +224,8 @@
     (data (i32.const 8000) "0123456789")
     (data (i32.const 8010) "\n")
     (global $itoa_out_buf i32 (i32.const 8020))
+
+    (global $read_iovec i32 (i32.const 8100))
+    (global $fdread_ret i32 (i32.const 8112))
+    (global $read_buf i32 (i32.const 8120))
 )
