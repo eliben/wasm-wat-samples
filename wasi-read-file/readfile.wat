@@ -4,7 +4,7 @@
     (import "wasi_snapshot_preview1" "fd_write" (func $fd_write (param i32 i32 i32 i32) (result i32)))
     (import "wasi_snapshot_preview1" "fd_prestat_get" (func $fd_prestat_get (param i32 i32) (result i32)))
     (import "wasi_snapshot_preview1" "fd_prestat_dir_name" (func $fd_prestat_dir_name (param i32 i32 i32) (result i32)))
-    (import "wasi_snapshot_preview1" "path_open" (func $path_open (param i32 i32 i32 i32 i32 i32 i32 i32) (result i32)))
+    (import "wasi_snapshot_preview1" "path_open" (func $path_open (param i32 i32 i32 i32 i32 i64 i64 i32 i32) (result i32)))
     (import "wasi_snapshot_preview1" "proc_exit" (func $proc_exit (param i32)))
 
     (memory (export "memory") 1)
@@ -24,7 +24,7 @@
             (i32.const 3)
             (global.get $prestat_dir_name_buf)
             (i32.load (global.get $prestat_dir_name_len)))
-        drop
+        drop ;; TODO check error
 
         (call $println (global.get $prestat_dir_name_buf) (i32.load (global.get $prestat_dir_name_len)))
 
@@ -36,9 +36,26 @@
             (call $die (i32.const 7025) (i32.const 49))
         end
 
-        ;; TODO call path_open here, starting with fd 3 which is the right dir
-        
+        ;; Open the input file using fd=3 as the base directory.
+        (call $path_open
+            (i32.const 3)           ;; fd=3 as base dir
+            (i32.const 0x1)         ;; lookupflags: symlink_follow=1
+            (i32.const 7940)        ;; file name in memory
+            (i32.const 10)          ;; length of file name
+            (i32.const 0x0)         ;; oflags=0
+            (i64.const 0x1)         ;; fd_rights_base=fd_read
+            (i64.const 0x1)         ;; fd_rights_inheriting=fd_read
+            (i32.const 0x0)         ;; fdflags=0
+            (global.get $path_open_fd_out))
 
+        ;; ... check error
+        i32.const 0
+        i32.ne
+        if
+            (call $die (i32.const 7090) (i32.const 37))
+        end
+        
+        ;; (call $println_number (i32.load (global.get $path_open_fd_out)))
         ;; (call $die (i32.const 7820) (i32.const 5))
     )
 
@@ -149,6 +166,7 @@
     (data (i32.const 7000) "hello from wat!")
     (data (i32.const 7020) "error")
     (data (i32.const 7025) "error: expect first preopened directory to be '.'")
+    (data (i32.const 7090) "error: unable to path_open input file")
 
     ;; These slots are used as parameters for fd_write, and its return value.
     (global $datavec_addr i32 (i32.const 7900))
@@ -164,7 +182,7 @@
     (data (i32.const 7940) "sample.txt")
 
     ;; Output buf for path_open to write fd into
-    (global $path_open_fd_out i32 (i32.const 7950))
+    (global $path_open_fd_out i32 (i32.const 7952))
 
     ;; Using some memory for a number-->digit ASCII lookup-table, and then the
     ;; space for writing the result of $itoa.
