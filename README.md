@@ -35,3 +35,11 @@ $ node test.js
 
 This will typically emit some output; if the loading failed or the loaded WASM
 behaves unexpectedly, the `test.js` script will report an error.
+
+## WASI documentation
+
+Useful sources of documentation about WASI host calls:
+
+* [Preview 1 ABI](https://github.com/WebAssembly/WASI/blob/main/legacy/preview1/docs.md)
+* [wasi-libc sources](https://github.com/WebAssembly/wasi-libc); in particular,
+  the [wasi/api.h header](https://github.com/WebAssembly/wasi-libc/blob/main/libc-bottom-half/headers/public/wasi/api.h)

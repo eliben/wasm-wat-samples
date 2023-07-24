@@ -56,6 +56,13 @@
         ;; This assumes the input file is relative to the base directory.
         ;; The result of this call will be the fd for the opened file in
         ;; $path_open_fd_out
+        ;;
+        ;; Note: the rights flags are minimal -- only allowing fd_read.
+        ;; Previously I tried giving "all" rights, but this didn't work in
+        ;; node (though it did in other runtimes). The reason for this may
+        ;; be that each fd has its maximal inheriting rights (specified in
+        ;; the fdstat.fs_rights_inheriting field), and we can't open a file
+        ;; with higher rights than its parents' inheriting field allows.
         (local.set $errno
             (call $path_open
                 (i32.const 3)           ;; fd=3 as base dir
