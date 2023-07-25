@@ -18,10 +18,10 @@
 
         ;; The sub instruction has two parameters, it's a binop according to
         ;; the WASM spec, working as follows:
-        ;;  1. pop c2 from the stack
-        ;;  2. pop c1 from the stack
-        ;;  3. c = binop(c1, c2)
-        ;;  4. push c to stack
+        ;;   1. pop c2 from the stack
+        ;;   2. pop c1 from the stack
+        ;;   3. c = binop(c1, c2)
+        ;;   4. push c to stack
         ;;
         ;; So in our case, we have to push $a first, then $b to get the
         ;; stack [b a ...]
@@ -34,15 +34,47 @@
         i32.sub
     )
 
+    ;; Demonstrates function calls with an explicit stack; retuns a constant
+    ;; that's the result of subtracting 91-23.
     (func $stack_func_call (export "stack_func_call") (result i32)
         ;; A function expects its parameters on the stack: the first param
         ;; is the "deepest". E.g. to call sub(91, 23), we need the stack:
         ;;
-        ;;  [23 91 ...]
+        ;;   [23 91 ...]
         ;;
         ;; Prior to calling $sub. This makes the order of pushes "natural".
+        ;;
+        ;; This call is equivalent to the folded form:
+        ;;  (call $sub (i32.const 91) (i32.const 23))
         i32.const 91
         i32.const 23
         call $sub
+    )
+
+    (func $greater (export "greater") (param $a i32) (param $b i32) (result i32)
+        ;; Load a and b on the stack and perform a>b
+        local.get $a
+        local.get $b
+        i32.gt_s
+
+        ;; The stack form of 'if':
+        ;;   1. pop c from stack
+        ;;   2. if c is non-zero then execute the first block
+        ;;   3. otherwise execute the else block
+        ;;
+        ;; Since we don't explicitly "return" from these blocks, we have to
+        ;; annotate the 'if' with its return type, otherwise validation will
+        ;; complain.
+        if (result i32)
+            i32.const 1
+        else
+            i32.const 0
+        end
+
+        ;; An alternative way to write this function using the folded form
+        ;; would be:
+        ;; (if (result i32) (i32.gt_s (local.get $a) (local.get $b))
+        ;;     (then (i32.const 1))
+        ;;     (else (i32.const 0)))
     )
 )
