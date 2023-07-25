@@ -1,10 +1,12 @@
-// Example of using open/read syscalls directly to open and read from a file.
+// Auxiliary sample in C that compiles to WASM/WASI.
 //
 // To run it, assuming wasi-sdk installed at $WSDK:
 //
 //  $WSDK/bin/clang --sysroot=$WSDK/share/wasi-sysroot open-read.c -o or.wasm
 //  wasmtime run --mapdir /::. or.wasm
 //
+// Eli Bendersky [https://eli.thegreenplace.net]
+// This code is in the public domain.
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -26,7 +28,7 @@ int main() {
         close(fd);
         return 1;
     }
-    // Null terminate the string we've read.
+    // Null terminate the string we've read, so we can printf it.
     buffer[bytesRead] = '\0';
 
     printf("Read from file:\n%s\n", buffer);
