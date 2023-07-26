@@ -24,6 +24,7 @@ const fs = require('fs');
     assert.equal(obj.instance.exports.two_a_plus_b(2, 4), 8);
     assert.equal(obj.instance.exports.two_a_plus_b(-2, 4), 0);
     assert.equal(obj.instance.exports.two_a_plus_b(13, 3), 29);
+
+    assert.deepEqual(obj.instance.exports.tee_for_two(13, 3), [29, 16]);
+    assert.deepEqual(obj.instance.exports.tee_for_two(-9, 30), [12, 21]);
 })();
-
-

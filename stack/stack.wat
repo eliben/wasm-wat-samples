@@ -97,4 +97,20 @@
         local.get $tmp
         i32.add
     )
+
+    ;; Demonstrates using local.tee in folded form to produce two values;
+    ;; returns a+a+b, a+b
+    (func $tee_for_two (export "tee_for_two") (param $a i32) (param $b i32) (result i32 i32)
+        (local $ab i32)
+
+        ;; Again, several ways to achieve this, but this function shows one
+        ;; way of using local.tee -- in folded form it returns a result as
+        ;; well as storing it in a local.
+        (i32.add
+            (local.get $a)
+            (local.tee $ab
+                (i32.add (local.get $a) (local.get $b))))
+
+        (local.get $ab)
+    )
 )
