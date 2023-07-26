@@ -20,6 +20,10 @@ const fs = require('fs');
     assert.equal(obj.instance.exports.greater(21, 15), 1);
     assert.equal(obj.instance.exports.greater(11, 15), 0);
     assert.equal(obj.instance.exports.greater(21, 21), 0);
+
+    assert.equal(obj.instance.exports.two_a_plus_b(2, 4), 8);
+    assert.equal(obj.instance.exports.two_a_plus_b(-2, 4), 0);
+    assert.equal(obj.instance.exports.two_a_plus_b(13, 3), 29);
 })();
 
 

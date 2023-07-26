@@ -28,7 +28,7 @@
         local.get $a
         local.get $b
 
-        ;; After calling sub, the stack willl have [(a-b) ...] on it. We don't
+        ;; After calling sub, the stack will have [(a-b) ...] on it. We don't
         ;; have to do anything else because this is exactly what's expected
         ;; of a function having a single return value.
         i32.sub
@@ -42,7 +42,7 @@
         ;;
         ;;   [23 91 ...]
         ;;
-        ;; Prior to calling $sub. This makes the order of pushes "natural".
+        ;; Prior to calling $sub. This makes the order of pushes natural.
         ;;
         ;; This call is equivalent to the folded form:
         ;;  (call $sub (i32.const 91) (i32.const 23))
@@ -76,5 +76,25 @@
         ;; (if (result i32) (i32.gt_s (local.get $a) (local.get $b))
         ;;     (then (i32.const 1))
         ;;     (else (i32.const 0)))
+    )
+
+    ;; Demonstrates the "tee" instruction in action.
+    (func $two_a_plus_b (export "two_a_plus_b") (param $a i32) (param $b i32) (result i32)
+        (local $tmp i32)
+        ;; This example is contrived, could be accomplished more easily
+        ;; using other means!
+        local.get $b
+        local.get $a
+        
+        ;; Take $a from the stack, copy it to $tmp, but also keep it on the
+        ;; stack for the next instruction.
+        local.tee $tmp
+
+        ;; Stack: [a b ...] --> [a+b ...]
+        i32.add
+
+        ;; Stack [a+b ...] --> [a+b+a ...]
+        local.get $tmp
+        i32.add
     )
 )
