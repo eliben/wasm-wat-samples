@@ -67,7 +67,6 @@
     (func $vargmin (export "vargmin") (param $start i32) (param $count i32) (result i32)
         (local $v v128)
         (local $indices v128)
-        (local $increment v128)
         (local $minvalues v128)
         (local $minindices v128)
         (local $mask v128)
@@ -80,9 +79,6 @@
         ;; input array.
         (local.set $indices (v128.const i32x4 0 1 2 3))
 
-        ;; increment helps us advance indices all at once with a vector add.
-        (local.set $increment (v128.const i32x4 4 4 4 4))
-        
         ;; init minvalues with the first 4 i32 values in the array, and
         ;; minindices with their indices.
         (local.set $minvalues (v128.load (local.get $start)))
@@ -94,7 +90,9 @@
         (loop $minloop (block $breakminloop
             (br_if $breakminloop (i32.ge_s (local.get $i) (local.get $count)))
 
-            (local.set $indices (i32x4.add (local.get $indices) (local.get $increment)))
+            ;; Advance indices
+            (local.set $indices
+                (i32x4.add (local.get $indices) (v128.const i32x4 4 4 4 4)))
 
             ;; Load the next 4 i32 values into v
             (local.set $v
