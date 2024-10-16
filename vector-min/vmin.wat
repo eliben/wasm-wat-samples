@@ -79,9 +79,12 @@
         ;; indices[k] is the index of the current vector's k-th lane in the
         ;; input array.
         (local.set $indices (v128.const i32x4 0 1 2 3))
+
+        ;; increment helps us advance indices all at once with a vector add.
         (local.set $increment (v128.const i32x4 4 4 4 4))
         
-        ;; init minvalues with the first 4 i32 values in the array
+        ;; init minvalues with the first 4 i32 values in the array, and
+        ;; minindices with their indices.
         (local.set $minvalues (v128.load (local.get $start)))
         (local.set $minindices (v128.const i32x4 0 1 2 3))
         
@@ -115,9 +118,6 @@
                     (local.get $minindices)
                     (local.get $indices)
                     (local.get $mask)))
-            
-            ;; (call $vlog (local.get $minvalues))
-            ;; (call $vlog (local.get $minindices))
 
             (local.set $i (i32.add (local.get $i) (i32.const 4)))
             br $minloop
@@ -128,6 +128,9 @@
         ;; For each lane 0..3:
         ;;   minscalar <- min(minscalar, minvalues[lane])
         ;;   result <- index of minscalar, if minscalar < minvalues[lane]
+        ;;
+        ;; TODO: this is unrolled b/c the argument of extract_lane is
+        ;; an immediate.
         (local.set $minscalar (i32x4.extract_lane 0 (local.get $minvalues)))
         (local.set $result (i32x4.extract_lane 0 (local.get $minindices)))
 
