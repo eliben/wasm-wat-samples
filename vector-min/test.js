@@ -50,4 +50,33 @@ const fs = require('fs');
 
     let minidx = vargmin(memOffset * 4, initArr.length);
     console.log('minidx:', minidx);
+
+    testArgminFunc(vargmin, mem_i32);
 })();
+
+function testArgminFunc(vargmin, mem_i32) {
+    const memOffset = 256;
+    let arr = [15, 19, -27, 12, 19, 120, 11, 9, 3, 18, 9, 19, 1, 2, 3, 4, 9, 3, -2, 8];
+    mem_i32.set(arr, memOffset);
+
+    let minidx = vargmin(memOffset * 4, arr.length);
+    console.log('minidx:', minidx);
+
+    let jsArgmin = (array) => array.map((el, idx) => [el, idx]).reduce((m, el) => (el[0] < m[0] ? el : m))[1];
+    let correctMinIdx = jsArgmin(arr);
+    assert.strictEqual(minidx, correctMinIdx);
+
+    console.log('Test random arrays');
+    for (let i = 0; i < 10; i++) {
+        let n = 4 + 4 * Math.floor(Math.random() * 10);
+        let arr = Array.from({length: n}, () => Math.floor(Math.random() * 1000));
+        console.log(`arr [n=${n}]: ${arr}`);
+        mem_i32.set(arr, memOffset);
+
+        let minidx = vargmin(memOffset * 4, arr.length);
+        let correctMinIdx = jsArgmin(arr);
+
+        // The minimum index can be different if there are multiple minimums
+        assert(minidx === correctMinIdx || (arr[minidx] === arr[correctMinIdx]));
+    }
+}

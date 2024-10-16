@@ -60,7 +60,8 @@
     )
 
     ;; vargmin returns the index of the minimal value in a memory array of
-    ;; i32 values.
+    ;; i32 values. If there are multiple minimal values, an index of any
+    ;; of them can be returned.
     ;; start is the offset in memory where this array starts.
     ;; count is the number of i32 values - each value is 4 bytes. We assume
     ;; count >= 4 and is a multiple of 4.
@@ -103,18 +104,18 @@
             
             ;; Compare v with the current minvalues; the result is a mask
             ;; that specifies where to replace minvalues with v.
-            (local.set $mask (i32x4.lt_s (local.get $minvalues) (local.get $v)))
+            (local.set $mask (i32x4.lt_s (local.get $v) (local.get $minvalues)))
 
             ;; update minvalues and minindices based on the mask
             (local.set $minvalues
                 (v128.bitselect
-                    (local.get $minvalues)
                     (local.get $v)
+                    (local.get $minvalues)
                     (local.get $mask)))
             (local.set $minindices
                 (v128.bitselect
-                    (local.get $minindices)
                     (local.get $indices)
+                    (local.get $minindices)
                     (local.get $mask)))
 
             (local.set $i (i32.add (local.get $i) (i32.const 4)))
@@ -133,34 +134,25 @@
         (local.set $result (i32x4.extract_lane 0 (local.get $minindices)))
 
         (local.set $laneval (i32x4.extract_lane 1 (local.get $minvalues)))
-        (local.set $minscalar
-            (select (local.get $minscalar)
-                    (local.get $laneval)
-                    (i32.lt_s (local.get $minscalar) (local.get $laneval))))
         (local.set $result
-            (select (local.get $result)
-                    (i32x4.extract_lane 1 (local.get $minindices))
-                    (i32.lt_s (local.get $minscalar) (local.get $laneval))))
+            (select (i32x4.extract_lane 1 (local.get $minindices))
+                    (local.get $result)
+                    (i32.lt_s (local.get $laneval) (local.get $minscalar))))
+        (local.set $minscalar (call $i32min (local.get $minscalar) (local.get $laneval)))
 
         (local.set $laneval (i32x4.extract_lane 2 (local.get $minvalues)))
-        (local.set $minscalar
-            (select (local.get $minscalar)
-                    (local.get $laneval)
-                    (i32.lt_s (local.get $minscalar) (local.get $laneval))))
         (local.set $result
-            (select (local.get $result)
-                    (i32x4.extract_lane 2 (local.get $minindices))
-                    (i32.lt_s (local.get $minscalar) (local.get $laneval))))
+            (select (i32x4.extract_lane 2 (local.get $minindices))
+                    (local.get $result)
+                    (i32.lt_s (local.get $laneval) (local.get $minscalar))))
+        (local.set $minscalar (call $i32min (local.get $minscalar) (local.get $laneval)))
 
         (local.set $laneval (i32x4.extract_lane 3 (local.get $minvalues)))
-        (local.set $minscalar
-            (select (local.get $minscalar)
-                    (local.get $laneval)
-                    (i32.lt_s (local.get $minscalar) (local.get $laneval))))
         (local.set $result
-            (select (local.get $result)
-                    (i32x4.extract_lane 3 (local.get $minindices))
-                    (i32.lt_s (local.get $minscalar) (local.get $laneval))))
+            (select (i32x4.extract_lane 3 (local.get $minindices))
+                    (local.get $result)
+                    (i32.lt_s (local.get $laneval) (local.get $minscalar))))
+        (local.set $minscalar (call $i32min (local.get $minscalar) (local.get $laneval)))
 
         (local.get $result)
     )
