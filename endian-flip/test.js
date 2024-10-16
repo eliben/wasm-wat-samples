@@ -52,7 +52,7 @@ const fs = require('fs');
                     '    out:', mem_u8[i].toString(16).padStart(2, '0'));
     }
 
-    for (let i = 0; i < 16; i += 4) {
+    for (let i = memOffset * 4; i < memOffset * 4 + 16; i += 4) {
         assert.equal(mem_u8[i], mem_u8_copy[i + 3]);
         assert.equal(mem_u8[i + 1], mem_u8_copy[i + 2]);
     }
