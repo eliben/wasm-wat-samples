@@ -17,28 +17,31 @@ const fs = require('fs');
                 console.log(`log i32: ${n}`);
             },
 
+            log_4xi32: function(n0, n1, n2, n3) {
+                console.log(`log 4xi32: ${n0} ${n1} ${n2} ${n3}`);
+            },
+
             buffer: memory
         }
     };
 
     let obj = await WebAssembly.instantiate(new Uint8Array(bytes), importObject);
     let vmin = obj.instance.exports.vmin;
-    // let i32min = obj.instance.exports.i32min;
+    let vargmin = obj.instance.exports.vargmin;
 
     // Offset of parameter in the m_u32 view.
     const memOffset = 128;
 
-    mem_i32.set([15, 19, 27, 12, 19, 20, 11, 9], memOffset);
-    // mem_i32[memOffset] = 179;
-    // mem_i32[memOffset + 1] = 0xC0DECAFE;
-    // mem_u32[memOffset + 2] = 0xABBABABA;
-    // mem_u32[memOffset + 3] = 0xF00DD00D;
+    let initArr = [15, 19, 27, 12, 19, 20, 11, 9, 3, 18, 9, 19];
+    mem_i32.set(initArr, memOffset);
 
     for (let i = memOffset; i < memOffset + 16; i++) {
         console.log(`[${i}  ${i*4}]  ${mem_i32[i]}`);
     }
 
-    let m = vmin(memOffset * 4, 8);
-    console.log('m:', m);
+    let minval = vmin(memOffset * 4, initArr.length);
+    console.log('minval:', minval);
 
+    let minidx = vargmin(memOffset * 4, initArr.length);
+    console.log('minidx:', minidx);
 })();

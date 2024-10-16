@@ -1,12 +1,16 @@
-;; 
+;; vmin (minimal value in an array) and vargmin (index of minimal value in an
+;; array) using SIMD in WebAssembly.
 ;;
-;; Eli Bendersky [https://eli.thegreenplace.net]
-;; This code is in the public domain.
+;; Based on http://0x80.pl/notesen/2018-10-03-simd-index-of-min.html
+;;
+;; Eli Bendersky [https://eli.thegreenplace.net] This code is in the public
+;; domain.
 (module
     ;; Memory buffer with data imported from the host.
     (import "env" "buffer" (memory 80))
 
     (import "env" "log_i32" (func $log_i32 (param i32)))
+    (import "env" "log_4xi32" (func $log_4xi32 (param i32 i32 i32 i32)))
 
     ;; vmin returns the minimal value in a memory array of i32 values.
     ;; start is the offset in memory where this array starts.
@@ -21,9 +25,9 @@
         ;; init v with the first 4 i32 values in the array
         (local.set $v (v128.load (local.get $start)))
 
-        ;; for (i = 0; i < count; i += 4)
+        ;; for (i = 4; i < count; i += 4)
         ;; i is the index of i32s in the array
-        (local.set $i (i32.const 0))
+        (local.set $i (i32.const 4))
         (loop $minloop (block $breakminloop
             (br_if $breakminloop (i32.ge_s (local.get $i) (local.get $count)))
 
@@ -33,7 +37,6 @@
                 (i32.add
                     (local.get $start)
                     (i32.mul (i32.const 4) (local.get $i))))
-            (call $log_i32 (local.get $addr))
 
             (local.set $v
                 (i32x4.min_s
@@ -44,7 +47,7 @@
             br $minloop
         ))
 
-        ;; Scalar calculation: the minimal value among vector $result's lanes.
+        ;; Scalar reduction: the minimal value among vector $result's lanes.
         (local.set $result (i32x4.extract_lane 0 (local.get $v)))
         (local.set $result
             (call $i32min (local.get $result) (i32x4.extract_lane 1 (local.get $v))))
@@ -56,6 +59,111 @@
         (local.get $result)
     )
 
+    ;; vargmin returns the index of the minimal value in a memory array of
+    ;; i32 values.
+    ;; start is the offset in memory where this array starts.
+    ;; count is the number of i32 values - each value is 4 bytes. We assume
+    ;; count >= 4 and is a multiple of 4.
+    (func $vargmin (export "vargmin") (param $start i32) (param $count i32) (result i32)
+        (local $v v128)
+        (local $indices v128)
+        (local $increment v128)
+        (local $minvalues v128)
+        (local $minindices v128)
+        (local $mask v128)
+        (local $i i32)
+        (local $minscalar i32)
+        (local $result i32)
+        (local $laneval i32)
+
+        ;; indices[k] is the index of the current vector's k-th lane in the
+        ;; input array.
+        (local.set $indices (v128.const i32x4 0 1 2 3))
+        (local.set $increment (v128.const i32x4 4 4 4 4))
+        
+        ;; init minvalues with the first 4 i32 values in the array
+        (local.set $minvalues (v128.load (local.get $start)))
+        (local.set $minindices (v128.const i32x4 0 1 2 3))
+        
+        ;; for (i = 4; i < count; i += 4)
+        ;; i is the index of i32s in the array
+        (local.set $i (i32.const 4))
+        (loop $minloop (block $breakminloop
+            (br_if $breakminloop (i32.ge_s (local.get $i) (local.get $count)))
+
+            (local.set $indices (i32x4.add (local.get $indices) (local.get $increment)))
+
+            ;; Load the next 4 i32 values into v
+            (local.set $v
+                (v128.load
+                    (i32.add
+                        (local.get $start)
+                        (i32.mul (i32.const 4) (local.get $i)))))
+            
+            ;; Compare v with the current minvalues; the result is a mask
+            ;; that specifies where to replace minvalues with v.
+            (local.set $mask (i32x4.lt_s (local.get $minvalues) (local.get $v)))
+
+            ;; update minvalues and minindices based on the mask
+            (local.set $minvalues
+                (v128.bitselect
+                    (local.get $minvalues)
+                    (local.get $v)
+                    (local.get $mask)))
+            (local.set $minindices
+                (v128.bitselect
+                    (local.get $minindices)
+                    (local.get $indices)
+                    (local.get $mask)))
+            
+            ;; (call $vlog (local.get $minvalues))
+            ;; (call $vlog (local.get $minindices))
+
+            (local.set $i (i32.add (local.get $i) (i32.const 4)))
+            br $minloop
+        ))
+
+        ;; Scalar reduction of the final vector.
+        ;;
+        ;; For each lane 0..3:
+        ;;   minscalar <- min(minscalar, minvalues[lane])
+        ;;   result <- index of minscalar, if minscalar < minvalues[lane]
+        (local.set $minscalar (i32x4.extract_lane 0 (local.get $minvalues)))
+        (local.set $result (i32x4.extract_lane 0 (local.get $minindices)))
+
+        (local.set $laneval (i32x4.extract_lane 1 (local.get $minvalues)))
+        (local.set $minscalar
+            (select (local.get $minscalar)
+                    (local.get $laneval)
+                    (i32.lt_s (local.get $minscalar) (local.get $laneval))))
+        (local.set $result
+            (select (local.get $result)
+                    (i32x4.extract_lane 1 (local.get $minindices))
+                    (i32.lt_s (local.get $minscalar) (local.get $laneval))))
+
+        (local.set $laneval (i32x4.extract_lane 2 (local.get $minvalues)))
+        (local.set $minscalar
+            (select (local.get $minscalar)
+                    (local.get $laneval)
+                    (i32.lt_s (local.get $minscalar) (local.get $laneval))))
+        (local.set $result
+            (select (local.get $result)
+                    (i32x4.extract_lane 2 (local.get $minindices))
+                    (i32.lt_s (local.get $minscalar) (local.get $laneval))))
+
+        (local.set $laneval (i32x4.extract_lane 3 (local.get $minvalues)))
+        (local.set $minscalar
+            (select (local.get $minscalar)
+                    (local.get $laneval)
+                    (i32.lt_s (local.get $minscalar) (local.get $laneval))))
+        (local.set $result
+            (select (local.get $result)
+                    (i32x4.extract_lane 3 (local.get $minindices))
+                    (i32.lt_s (local.get $minscalar) (local.get $laneval))))
+
+        (local.get $result)
+    )
+
     ;; i32min returns min(a, b)
     (func $i32min (export "i32min") (param $a i32) (param $b i32) (result i32)
         (select 
@@ -64,23 +172,11 @@
             (i32.lt_s (local.get $a) (local.get $b)))
     )
 
-    ;; 
-    (func $vargmin (export "vargmin") (param $offset i32)
-        (local $aa v128)
-        (local $bb v128)
-        (local $mask v128)
-        
-        (local.set $aa (v128.load (local.get $offset)))
-        (local.set $bb (v128.load (i32.add (local.get $offset) (i32.const 16))))
-
-        (local.set $mask (i8x16.lt_s (local.get $aa) (local.get $bb)))
-
-        (v128.store
-            (i32.add (local.get $offset) (i32.const 32))
-            (v128.bitselect (local.get $aa) (local.get $bb) (local.get $mask)))
-
-        ;; (v128.store
-        ;;     (i32.add (local.get $offset) (i32.const 32))
-        ;;     (i8x16.lt_s (local.get $aa) (local.get $bb)))
+    (func $vlog (param $a v128)
+        (call $log_4xi32
+            (i32x4.extract_lane 0 (local.get $a))
+            (i32x4.extract_lane 1 (local.get $a))
+            (i32x4.extract_lane 2 (local.get $a))
+            (i32x4.extract_lane 3 (local.get $a)))
     )
-)
+)   
