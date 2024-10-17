@@ -51,8 +51,38 @@ const fs = require('fs');
     let minidx = vargmin(memOffset * 4, initArr.length);
     console.log('minidx:', minidx);
 
+    testMinFunc(vmin, mem_i32);
     testArgminFunc(vargmin, mem_i32);
 })();
+
+
+function testMinFunc(vmin, mem_i32) {
+    const memOffset = 128;
+
+    dotest = (arr) => {
+        mem_i32.set(arr, memOffset);
+        let minval = vmin(memOffset * 4, arr.length);
+        let correctMinVal = arr.length == 0 ? 0 : Math.min(...arr);
+        assert.strictEqual(minval, correctMinVal);
+    }
+
+    try {
+        dotest([]);
+    } catch (e) {
+    }
+    dotest([11]);
+    dotest([11, 3]);
+    dotest([11, 3, 2]);
+    dotest([11, 3, 2, 5]);
+    dotest([1, 2, 3, 4, 5, 6, 7, 8]);
+    dotest([11, 22, 33, 44, 5]);
+    dotest([11, 22, 4, 33, 44, 5]);
+    dotest([11, 2, 22, 33, 44, 5]);
+    dotest([1, 2, 22, 33, 44, 5]);
+    dotest([11, 21, 22, 33, 4, 5]);
+    dotest([11, 21, 22, 33, 4, 5, -2, 9]);
+    dotest([11, 21, 22, 33, 4, 5, -2, 9, 1, -6]);
+}
 
 function testArgminFunc(vargmin, mem_i32) {
     const memOffset = 256;

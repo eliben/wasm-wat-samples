@@ -14,15 +14,27 @@
 
     ;; vmin returns the minimal value in a memory array of i32 values.
     ;; start is the offset in memory where this array starts.
-    ;; count is the number of i32 values - each value is 4 bytes. We assume
-    ;; count >= 4 and is a multiple of 4.
+    ;; count is the number of i32 values - each value is 4 bytes. If count=0,
+    ;; this traps (throws an error to the host). This handles any positive
+    ;; count.
     (func $vmin (export "vmin") (param $start i32) (param $count i32) (result i32)
         (local $v v128)
         (local $i i32)
         (local $result i32)
         (local $addr i32)
 
-        ;; init v with the first 4 i32 values in the array
+        ;; If count is 0, trap.
+        (if (i32.eq (local.get $count) (i32.const 0))
+            (unreachable)
+        )
+        (local.set $result (i32.load (local.get $start)))
+
+        ;; If count < 4, skip the vector part entirely
+        (block $vectorpart
+        (br_if $vectorpart (i32.lt_s (local.get $count) (i32.const 4)))
+
+        ;; Do the vector part of the reduction in 4-lane chunks.
+        ;; Initialize v to the first 4 i32 values in the array.
         (local.set $v (v128.load (local.get $start)))
 
         ;; for (i = 4; i < count; i += 4)
@@ -55,6 +67,40 @@
             (call $i32min (local.get $result) (i32x4.extract_lane 2 (local.get $v))))
         (local.set $result
             (call $i32min (local.get $result) (i32x4.extract_lane 3 (local.get $v))))
+
+        ;; Leftovers in the array: if $i == $count, we're done. Otherwise, there
+        ;; are 1-3 i32 values left to process.
+        (if (i32.eq (local.get $i) (local.get $count))
+            (return (local.get $result))
+        )
+
+        ) ;; end of block $vectorpart
+
+        ;; Leftover elements that didn't fit into the vector part.
+        ;; Here, result contains the minimal value seen so far in the vector
+        ;; parts.
+
+        ;; for (i = max(0, count - 4); i < count; ++i)
+        (local.set $i 
+            (call $i32max
+                (i32.sub (local.get $count) (i32.const 4))
+                (i32.const 0)))
+        (loop $minloopscalar (block $breakminloopscalar
+            (br_if $breakminloopscalar (i32.ge_s (local.get $i) (local.get $count)))
+
+            (local.set $addr
+                (i32.add
+                    (local.get $start)
+                    (i32.mul (i32.const 4) (local.get $i))))
+
+            (local.set $result
+                (call $i32min
+                    (local.get $result)
+                    (i32.load (local.get $addr))))
+
+            (local.set $i (i32.add (local.get $i) (i32.const 1)))
+            br $minloopscalar
+        ))
         
         (local.get $result)
     )
@@ -64,7 +110,8 @@
     ;; of them can be returned.
     ;; start is the offset in memory where this array starts.
     ;; count is the number of i32 values - each value is 4 bytes. We assume
-    ;; count >= 4 and is a multiple of 4.
+    ;; count >= 4 and is a multiple of 4 (for simplicity - this can be easily
+    ;; adjusted to support any length, just like in vmin).
     (func $vargmin (export "vargmin") (param $start i32) (param $count i32) (result i32)
         (local $v v128)
         (local $indices v128)
@@ -163,6 +210,14 @@
             (local.get $a)
             (local.get $b)
             (i32.lt_s (local.get $a) (local.get $b)))
+    )
+
+    ;; i32max returns max(a, b)
+    (func $i32max (export "i32max") (param $a i32) (param $b i32) (result i32)
+        (select 
+            (local.get $a)
+            (local.get $b)
+            (i32.gt_s (local.get $a) (local.get $b)))
     )
 
     (func $vlog (param $a v128)
