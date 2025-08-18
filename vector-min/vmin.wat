@@ -25,7 +25,7 @@
 
         ;; If count is 0, trap.
         (if (i32.eq (local.get $count) (i32.const 0))
-            (unreachable)
+            (then unreachable)
         )
         (local.set $result (i32.load (local.get $start)))
 
@@ -71,7 +71,7 @@
         ;; Leftovers in the array: if $i == $count, we're done. Otherwise, there
         ;; are 1-3 i32 values left to process.
         (if (i32.eq (local.get $i) (local.get $count))
-            (return (local.get $result))
+            (then (return (local.get $result)))
         )
 
         ) ;; end of block $vectorpart
