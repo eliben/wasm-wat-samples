@@ -1,4 +1,16 @@
-#!/usr/bin/env node
+// Test runner for all samples.
+// 
+// node run-tests.js <dir1> <dir2>
+// 
+//  Will only load/run the samples in the given directories.
+//
+// node run-tests.js
+//
+//  Will load/run the samples in all sub-directories.
+//
+// The runner will compile all .wat files to .wasm with wat2wasm (which has
+// to be installed and available in PATH!), and will then run the test.js
+// test file in each directory it loads.
 'use strict';
 
 const fs = require('node:fs');
@@ -53,7 +65,7 @@ function main() {
 
   // Iterate each selected directory, making sure required inputs exist,
   // compiling all .wat files we find, and recording the outcome.
-  for (const dirName of queue) {
+  sampleloop: for (const dirName of queue) {
     const dirPath = path.join(rootDir, dirName);
     const testScript = path.join(dirPath, 'test.js');
     if (!fs.existsSync(testScript)) {
@@ -70,20 +82,14 @@ function main() {
 
     // Compile each .wat to a sibling .wasm; abort the suite on the first
     // failure so we don't attempt to run an incomplete build.
-    let buildFailed = false;
     for (const watFile of watFiles) {
       const wasmFile = watFile.replace(/\.wat$/i, '.wasm');
       console.log(`\n[${dirName}] Building ${watFile} -> ${wasmFile}`);
       const buildResult = runCommand('wat2wasm', [watFile, '-o', wasmFile], dirPath);
       if (!buildResult.ok) {
         results.push({ name: dirName, status: 'FAIL', message: `wat2wasm ${watFile}: ${buildResult.message}` });
-        buildFailed = true;
-        break;
+        continue sampleloop;
       }
-    }
-
-    if (buildFailed) {
-      continue;
     }
 
     console.log(`[${dirName}] Running test.js`);
