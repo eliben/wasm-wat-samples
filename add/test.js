@@ -17,5 +17,3 @@ const fs = require('fs');
 
     assert.equal(result, a + b);
 })();
-
-
