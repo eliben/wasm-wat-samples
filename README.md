@@ -36,6 +36,17 @@ $ node test.js
 This will typically emit some output; if the loading failed or the loaded WASM
 behaves unexpectedly, the `test.js` script will report an error.
 
+## Running all tests
+
+The ``run-tests.js`` script is a test runner for the entire project:
+
+```
+$ node run-tests.js
+```
+
+Will build all `.wat` files in all directories and run the corresponding
+``test.js`` files, summarizing the results.
+
 ## WASI documentation
 
 Useful sources of documentation about WASI host calls:

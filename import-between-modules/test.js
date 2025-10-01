@@ -29,4 +29,3 @@ const assert = require('node:assert');
     assert.equal(twiceplus5(10), 25);
     assert.equal(twiceplus5(-92), -179);
 })();
-
