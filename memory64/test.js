@@ -29,14 +29,19 @@ function memdump(mem, start, len) {
     assert.equal(mem.buffer.byteLength, 128 * 1024);
     memdump(mem, 0, 64);
 
+    // i64 in wasm is represented as BigInt in JS.
     let wasm_size = obj.instance.exports.wasm_size;
     assert.equal(wasm_size(), 2);
+    assert.equal(typeof(wasm_size()), 'bigint');
 
+    // Since wasm_fill's params are (i64, i32, i64), we pass
+    // BigInt constants.
     let wasm_fill = obj.instance.exports.wasm_fill;
     wasm_fill(16n, 0x22, 8n);
     memdump(mem, 0, 64);
 
-    // TODO: understand the whole BigInt business here for i64... and 
-    // beef up test to actually test stuff -- maybe known fill pattern we
-    // can verify?
+    let view = new Uint8Array(mem.buffer);
+    assert.equal(view[0], 0x67);
+    assert.equal(view[16], 0x22);
+    assert.equal(view[32], 0x01);
 })();
