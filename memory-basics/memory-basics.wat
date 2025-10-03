@@ -36,4 +36,15 @@
     (func (export "wasm_fill") (param $start i32) (param $val i32) (param $n i32)
         (memory.fill (local.get $start) (local.get $val) (local.get $n))
     )
+
+    ;; Read as i32 from given address; reads 4 bytes, treating them as
+    ;; little-endian i32.
+    (func (export "read_as_i32") (param $addr i32) (result i32)
+        (i32.load (local.get $addr))
+    )
+
+    ;; Read as i8 unsigned from given address; reads a single byte.
+    (func (export "read_as_i8u") (param $addr i32) (result i32)
+        (i32.load8_u (local.get $addr))
+    )
 )
