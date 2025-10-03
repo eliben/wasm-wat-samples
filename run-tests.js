@@ -85,7 +85,7 @@ function main() {
     for (const watFile of watFiles) {
       const wasmFile = watFile.replace(/\.wat$/i, '.wasm');
       console.log(`\n[${dirName}] Building ${watFile} -> ${wasmFile}`);
-      const buildResult = runCommand('wat2wasm', [watFile, '-o', wasmFile], dirPath);
+      const buildResult = runCommand('wat2wasm', ['--enable-all', watFile, '-o', wasmFile], dirPath);
       if (!buildResult.ok) {
         results.push({ name: dirName, status: 'FAIL', message: `wat2wasm ${watFile}: ${buildResult.message}` });
         continue sampleloop;
