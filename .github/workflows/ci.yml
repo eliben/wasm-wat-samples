@@ -17,14 +17,17 @@ jobs:
         with:
           node-version: 24
 
-      - name: Install WABT (wat2wasm)
+      - name: Install wasm-tools
         run: |
-          WABT_VERSION=1.0.37
+          WASM_TOOLS_VERSION=1.239.0
+          WASM_TOOLS_DIR="wasm-tools-${WASM_TOOLS_VERSION}-x86_64-linux"
+          mkdir -p _tools
           pushd _tools
-          curl -sSL "https://github.com/WebAssembly/wabt/releases/download/${WABT_VERSION}/wabt-${WABT_VERSION}-ubuntu-20.04.tar.gz" -o wabt.tar.gz
-          tar -xzf wabt.tar.gz
+          curl -sSL "https://github.com/bytecodealliance/wasm-tools/releases/download/v${WASM_TOOLS_VERSION}/${WASM_TOOLS_DIR}.tar.gz" -o wasm-tools.tar.gz
+          tar -xzf wasm-tools.tar.gz
+          rm -f wasm-tools.tar.gz
           popd
-          echo "$(pwd)/_tools/wabt-${WABT_VERSION}/bin" >> "$GITHUB_PATH"
+          echo "$(pwd)/_tools/${WASM_TOOLS_DIR}" >> "$GITHUB_PATH"
 
       - name: Run tests
         run: node run-tests.js
