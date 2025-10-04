@@ -6,7 +6,7 @@
     (table $table 10 externref)
 
     ;; Roundtrips its parameter of an opaque externref back to the caller.
-    (func (export "roundtrip") (param externref) (result externref)
+    (func (export "roundtrip") (param externref) (result (ref null extern))
         local.get 0
     )
 

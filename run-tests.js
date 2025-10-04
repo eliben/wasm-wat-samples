@@ -8,7 +8,7 @@
 //
 //  Will load/run the samples in all sub-directories.
 //
-// The runner will compile all .wat files to .wasm with wat2wasm (which has
+// The runner will compile all .wat files to .wasm with wasm-tools (which has
 // to be installed and available in PATH!), and will then run the test.js
 // test file in each directory it loads.
 'use strict';
@@ -85,9 +85,9 @@ function main() {
     for (const watFile of watFiles) {
       const wasmFile = watFile.replace(/\.wat$/i, '.wasm');
       console.log(`\n[${dirName}] Building ${watFile} -> ${wasmFile}`);
-      const buildResult = runCommand('wat2wasm', ['--enable-all', watFile, '-o', wasmFile], dirPath);
+      const buildResult = runCommand('wasm-tools', ['parse', watFile, '-o', wasmFile], dirPath);
       if (!buildResult.ok) {
-        results.push({ name: dirName, status: 'FAIL', message: `wat2wasm ${watFile}: ${buildResult.message}` });
+        results.push({ name: dirName, status: 'FAIL', message: `wasm-tools parse ${watFile}: ${buildResult.message}` });
         continue sampleloop;
       }
     }
