@@ -20,4 +20,8 @@ const fs = require('fs');
     saveref([10, 20, "foo"]);
     let vout = loadref();
     assert.deepEqual(vout, [10, 20, "foo"]);
+
+    let caller = obj.instance.exports.caller;
+    let result = caller();
+    assert.equal(result, 53);
 })();
