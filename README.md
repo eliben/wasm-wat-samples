@@ -18,11 +18,12 @@ Unless otherwise stated, each sample consists of a single `.wat` file and an
 accompanying `test.js` file. When the setup is more complicated, the directory's
 own README will have additional information.
 
-First, start by compiling the WAT file to WASM with [wabt](https://github.com/WebAssembly/wabt)
-or some other WASM toolchain:
+To run a single sample, ``cd`` into its directory, and start by compiling the WAT file
+to WASM with [wasm-tools](https://github.com/bytecodealliance/wasm-tools) or some
+other WASM toolchain:
 
 ```
-$ wat2wasm somefile.wat
+$ wasm-tools parse somefile.wat -o somefile.wasm
 ```
 
 This creates a `somefile.wasm` binary, which `test.js` expects to find in its
@@ -44,8 +45,10 @@ The ``run-tests.js`` script is a test runner for the entire project:
 $ node run-tests.js
 ```
 
-Will build all `.wat` files in all directories and run the corresponding
-``test.js`` files, summarizing the results.
+It should be run from the root directory of the project. This command
+will build all `.wat` files in all directories and run the corresponding
+``test.js`` files, summarizing the results. You can also ask it to build
+and run a single sample by providing its name as a parameter.
 
 ## WASI documentation
 
