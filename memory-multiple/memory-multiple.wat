@@ -1,9 +1,5 @@
 ;; Shows how to use multiple memories from wasm.
 ;;
-;; Note: currently requires --enable-multi-memory (or --enable-all) to be passed
-;; to wat2wasm in order to compile. This will likely be lifted in the future,
-;; since the feature became standard in WASM 3.0
-;;
 ;; Eli Bendersky [https://eli.thegreenplace.net]
 ;; This code is in the public domain.
 (module

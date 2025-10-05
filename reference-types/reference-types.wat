@@ -25,6 +25,7 @@
 
     ;; Add $inc to the function table; 'declare' means that references to
     ;; $inc will go here.
+    ;; funcref is an alias for (ref null func)
     (elem declare funcref (ref.func $inc))
 
     ;; Example of typed references; we can use them directly for higher-order
