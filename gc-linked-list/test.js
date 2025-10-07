@@ -10,6 +10,12 @@ const fs = require('fs');
     const bytes = fs.readFileSync(__dirname + '/gc-linked-list.wasm');
     let obj = await WebAssembly.instantiate(new Uint8Array(bytes));
 
+    let globalhead = obj.instance.exports.globalhead;
     let makelist = obj.instance.exports.makelist;
+    let addup = obj.instance.exports.addup;
     makelist();
+    let s1 = addup();
+
+    assert.equal(s1, 5050);
+    console.log(s1);
 })();
