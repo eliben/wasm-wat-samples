@@ -1,4 +1,8 @@
-;; Basic "add" example.
+;; Demonstrates WASM GC in action. The 'alloc' function allocates an array
+;; and stores a reference to it in a global. The `drop_all' function drops
+;; this reference.
+;;
+;; See the corresponding host code for a demo of Node.js's GC in action.
 ;;
 ;; Eli Bendersky [https://eli.thegreenplace.net]
 ;; This code is in the public domain.
@@ -44,5 +48,12 @@
     (func (export "drop_all")
         (global.set $hold (ref.null $PairArray))
     )
-)
 
+    ;; Return element [n] from global array.
+    (func (export "get") (param $n i32) (result i32) (result i32)
+        (local $elem (ref null $Pair))
+        (local.set $elem (array.get $PairArray (global.get $hold) (local.get $n)))
+        (struct.get $Pair 0 (ref.as_non_null (local.get $elem)))
+        (struct.get $Pair 1 (ref.as_non_null (local.get $elem)))
+    )
+)

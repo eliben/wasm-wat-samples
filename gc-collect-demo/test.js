@@ -1,5 +1,7 @@
 // JS loader and tester for the sample.
 //
+// Run this with --expose-gc to see the Node.js GC in action.
+//
 // Eli Bendersky [https://eli.thegreenplace.net]
 // This code is in the public domain.
 const assert = require('node:assert');
@@ -24,19 +26,25 @@ function snap(tag) {
 
     snap('start');
 
-    // allocate ~1e6 small GC objects (tune N to your machine)
     obj.instance.exports.alloc(1_000_000);
     snap('after alloc (live)');
 
-    // explicitly request V8 GC (allowed because of --expose-gc)
-    global.gc();
-    snap('after gc (still live, held by wasm global)');
+    // Test the array was initialized properly
+    let elem2 = obj.instance.exports.get(2);
+    assert.deepEqual(elem2, [1, 2]);
 
-    // drop the only reference inside Wasm so everything becomes unreachable
-    obj.instance.exports.drop_all();
-    snap('after drop (unreachable, before gc)');
+    if (global.gc === undefined) {
+        console.log("Run with --expose-gc to observe collection");
+    } else {
+        global.gc();
+        snap('after gc (still live, held by wasm global)');
 
-    // force another GC to reclaim them now
-    global.gc();
-    snap('after gc (reclaimed)');
+        // drop the only reference inside Wasm so everything becomes unreachable
+        obj.instance.exports.drop_all();
+        snap('after drop (unreachable, before gc)');
+
+        // force another GC to reclaim them now
+        global.gc();
+        snap('after gc (reclaimed)');
+    }
 })();
