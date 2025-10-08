@@ -175,7 +175,7 @@
         ;;   minscalar <- min(minscalar, minvalues[lane])
         ;;   result <- index of minscalar, if minscalar < minvalues[lane]
         ;;
-        ;; TODO: this is unrolled b/c the argument of extract_lane is
+        ;; This is unrolled since the laneidx argument of extract_lane is
         ;; an immediate.
         (local.set $minscalar (i32x4.extract_lane 0 (local.get $minvalues)))
         (local.set $result (i32x4.extract_lane 0 (local.get $minindices)))
