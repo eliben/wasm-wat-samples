@@ -26,20 +26,27 @@ def sec(sec_id: int, payload: bytes) -> bytes:
 # One function type: (param i32) (result i32)
 # func-type = 0x60, i32 = 0x7F
 type_payload = b"".join([
-    uleb(1),          # vector length: 1 type
+    uleb(2),          # two types
+
+    # First type: func with (param i32) (result i32)
     bytes([0x60]),    # func type tag
     uleb(1),          # param count: 1
     bytes([0x7F]),    # param type: i32
     uleb(1),          # result count: 1
     bytes([0x7F]),    # result type: i32
+
+    # Second type: func with no params, no results
+    bytes([0x60]),    # func type tag
+    uleb(0),          # param count: 0
+    uleb(0),          # result count: 0
 ])
 type_section = sec(1, type_payload)
 
 # ===== Function section (id=3) =====
-# One function, whose type index is 0
 func_payload = b"".join([
-    uleb(1),  # vector length: 1 function
+    uleb(2),  # 2 functions
     uleb(0),  # type index 0
+    uleb(1),  # type index 1
 ])
 func_section = sec(3, func_payload)
 
@@ -56,22 +63,24 @@ export_payload = b"".join([
 export_section = sec(7, export_payload)
 
 # ===== Code section (id=10 / 0x0A) =====
-# One body with no locals; instructions:
-#   local.get 0   (0x20 0x00)
-#   i32.const 1   (0x41 0x01)
-#   i32.add       (0x6A)
-#   end           (0x0B)
-body = b"".join([
+body1 = b"".join([
     uleb(0),                 # local decl count = 0
     bytes([0x20]), uleb(0),  # local.get 0
     bytes([0x41]), uleb(1),  # i32.const 1
     bytes([0x6A]),           # i32.add
     bytes([0x0B]),           # end
 ])
+
+body2 = b"".join([
+    uleb(0),       # local decl count = 0
+    bytes([0x0B]), # end
+])
 code_payload = b"".join([
-    uleb(1),         # vector length: 1 function body
-    uleb(len(body)), # body size
-    body,
+    uleb(2),            # 2 function bodies
+    uleb(len(body1)),   # body size
+    body1,
+    uleb(len(body2)),   # body size
+    body2,
 ])
 code_section = sec(0x0A, code_payload)
 
