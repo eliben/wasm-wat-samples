@@ -71,8 +71,10 @@ body1 = b"".join([
     bytes([0x0B]),           # end
 ])
 
+# insert instructions here to check their decoding by 'wasm-tools print'
 body2 = b"".join([
     uleb(0),       # local decl count = 0
+    bytes(b"\xFB\x02\x00\x00"),
     bytes([0x0B]), # end
 ])
 code_payload = b"".join([
