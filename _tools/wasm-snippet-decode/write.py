@@ -1,10 +1,4 @@
-# Writes a minimal wasm binary with one exported function:
-#   (func (export "add1") (param i32) (result i32)
-#         local.get 0
-#         i32.const 1
-#         i32.add)
-#
-# No imports, memories, or custom sections.
+# Writes a minimal, valid wasm binary with a couple of functions.
 
 def uleb(n: int) -> bytes:
     """Unsigned LEB128 encode."""
@@ -19,12 +13,11 @@ def uleb(n: int) -> bytes:
             break
     return bytes(out)
 
-def sec(sec_id: int, payload: bytes) -> bytes:
+# Emit section with given id and contents.
+def section(sec_id: int, payload: bytes) -> bytes:
     return bytes([sec_id]) + uleb(len(payload)) + payload
 
 # ===== Type section (id=1) =====
-# One function type: (param i32) (result i32)
-# func-type = 0x60, i32 = 0x7F
 type_payload = b"".join([
     uleb(2),          # two types
 
@@ -40,15 +33,17 @@ type_payload = b"".join([
     uleb(0),          # param count: 0
     uleb(0),          # result count: 0
 ])
-type_section = sec(1, type_payload)
+type_section = section(1, type_payload)
 
 # ===== Function section (id=3) =====
+# It's a list, encoded with a u32 length followed by the encoding of the
+# elements.
 func_payload = b"".join([
     uleb(2),  # 2 functions
     uleb(0),  # type index 0
     uleb(1),  # type index 1
 ])
-func_section = sec(3, func_payload)
+func_section = section(3, func_payload)
 
 # ===== Export section (id=7) =====
 # Export function 0 under name "add1"
@@ -60,9 +55,13 @@ export_payload = b"".join([
     bytes([0x00]),      # kind: 0x00 = function
     uleb(0),            # function index 0
 ])
-export_section = sec(7, export_payload)
+export_section = section(7, export_payload)
 
 # ===== Code section (id=10 / 0x0A) =====
+
+# Each function body has a list of locals (length, followed by the appropriate
+# number of local decls), and then an "expression" which is a sequence of
+# bytes encoding instructions, terminated with 0x0B.
 body1 = b"".join([
     uleb(0),                 # local decl count = 0
     bytes([0x20]), uleb(0),  # local.get 0
@@ -73,9 +72,9 @@ body1 = b"".join([
 
 # insert instructions here to check their decoding by 'wasm-tools print'
 body2 = b"".join([
-    uleb(0),       # local decl count = 0
+    uleb(0),                # local decl count = 0
     bytes(b"\xFB\x02\x00\x00"),
-    bytes([0x0B]), # end
+    bytes([0x0B]),          # end
 ])
 code_payload = b"".join([
     uleb(2),            # 2 function bodies
@@ -84,7 +83,7 @@ code_payload = b"".join([
     uleb(len(body2)),   # body size
     body2,
 ])
-code_section = sec(0x0A, code_payload)
+code_section = section(0x0A, code_payload)
 
 # ===== Assemble module =====
 wasm = b"".join([
@@ -106,6 +105,7 @@ print("Wrote out.wasm ({} bytes)".format(len(wasm)))
 # emitted file and print results to stdout.
 import subprocess
 try:
+    print("Running 'wasm-tools parse'")
     subprocess.run(["wasm-tools", "print", out_file], check=True)
 except FileNotFoundError:
     print("Note: 'wasm-tools' not found")
