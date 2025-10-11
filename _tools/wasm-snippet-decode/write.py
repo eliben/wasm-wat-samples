@@ -85,7 +85,18 @@ wasm = b"".join([
     code_section,
 ])
 
-with open("add1.wasm", "wb") as f:
+out_file = "out.wasm"
+with open(out_file, "wb") as f:
     f.write(wasm)
 
-print("Wrote add1.wasm ({} bytes)".format(len(wasm)))
+print("Wrote out.wasm ({} bytes)".format(len(wasm)))
+
+# If wasm-tools is installed, invoke it with 'print' on the
+# emitted file and print results to stdout.
+import subprocess
+try:
+    subprocess.run(["wasm-tools", "print", out_file], check=True)
+except FileNotFoundError:
+    print("Note: 'wasm-tools' not found")
+except subprocess.CalledProcessError as e:
+    print(f"Error running wasm-tools: {e}")
