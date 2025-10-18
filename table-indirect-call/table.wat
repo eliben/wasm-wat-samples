@@ -19,8 +19,11 @@
     ;; Declare the dispatch function table to have 32 slots, and populate slots
     ;; 16 and 17 with functions.
     ;; This uses the WASMv1 default table 0.
+    ;; Note: we could have also done this in a single
+    ;;   (elem (i32.const 16) $wasmtimes2 $jstimes3)
     (table 32 funcref)
-    (elem (i32.const 16) $wasmtimes2 $jstimes3)
+    (elem (i32.const 16) $wasmtimes2)
+    (elem (i32.const 17) $jstimes3)
 
     ;; The following two functions are exported to JS; when JS calls them, they
     ;; invoke functions from the table.
