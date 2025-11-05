@@ -17,7 +17,7 @@
         (local $i i32)
         (local $read_offset i32)
         (local $result i32)
-        
+
         ;; Equivalent to the C loop:
         ;;
         ;; for (i = 0; i < count; i++) {
@@ -28,6 +28,19 @@
         ;; just at the end. This is because a `for` loop performs its test
         ;; before each iteration, not running at all if the condition isn't
         ;; satisfied for the very first i.
+        ;;
+        ;; The loop is transformed to:
+        ;;
+        ;; for (;;) {
+        ;;   if (i >= count) {
+        ;;     break
+        ;;   }
+        ;;   ... loop body
+        ;;   i++
+        ;; }
+        ;;
+        ;; Since the branch to $breakaddloop skips the loop's "br $addloop"
+        ;; back-edge, it exits the loop.
         (local.set $i (i32.const 0))
         (loop $addloop (block $breakaddloop
             (i32.ge_s (local.get $i) (local.get $count))
@@ -68,7 +81,7 @@
         ;; satisfied.
         (loop $randloop
             (local.set $n (call $rand_i32))
-        
+
             (i32.ne (i32.rem_u (local.get $n) (i32.const 10)) (i32.const 0))
             br_if $randloop
         )
@@ -87,7 +100,7 @@
         ;; while (n <= limit) {
         ;;   n *= base
         ;; }
-        ;; 
+        ;;
         ;; Like in the 'for' loop case, we don't want to run the loop's body
         ;; if the condition is not satisfied from the start; this is why the
         ;; breaking branch is at the very start. The similarity to the 'for'
