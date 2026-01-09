@@ -9,11 +9,10 @@ const fs = require('fs');
     // Load the WASM file and instantiate it.
     const bytes = fs.readFileSync(__dirname + '/gc-print-scheme-pairs.wasm');
 
-    // Import object providing the host functions.
+    // out will collect the printed output.
     let out = '';
     const importObject = {
         env: {
-            // Collect output into a local stream for testing.
             write_char: function(charCode) {
                 out += String.fromCharCode(charCode);
             },
@@ -24,11 +23,12 @@ const fs = require('fs');
     };
 
     let obj = await WebAssembly.instantiate(new Uint8Array(bytes), importObject);
-
     let mainfunc = obj.instance.exports.main;
     mainfunc();
 
     // Verify the collected output matches the expected printed list.
-    console.log(out);
-    // assert.equal(out, '(42 #t 7 #f)');
+    assert.equal(out, `(42 #t 7 #f)
+(1 2 . 3)
+((10 20) (#t #f))
+`)
 })();

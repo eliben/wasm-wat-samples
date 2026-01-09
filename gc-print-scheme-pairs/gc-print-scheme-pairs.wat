@@ -1,4 +1,6 @@
-;; TODO
+;; Shows how to emulate Scheme-line pairs/lists with WASM GC structs/refs.
+;; Also shows how to print such structures from within WASM, using minimal
+;; IO imports from the host.
 ;;
 ;; Eli Bendersky [https://eli.thegreenplace.net]
 ;; This code is in the public domain.
@@ -6,6 +8,7 @@
     (import "env" "write_char" (func $write_char (param i32)))
     (import "env" "write_i32" (func $write_i32 (param i32)))
 
+    ;; ints are represented as ref i31.
     (type $Bool (struct 
         (field i32)  ;; 0 = #f, nonzero = #t
     ))
