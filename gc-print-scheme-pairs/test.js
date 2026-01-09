@@ -30,5 +30,6 @@ const fs = require('fs');
     assert.equal(out, `(42 #t 7 #f)
 (1 2 . 3)
 ((10 20) (#t #f))
+((10 20) ())
 `)
 })();

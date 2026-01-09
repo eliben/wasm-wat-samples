@@ -1,4 +1,4 @@
-;; Shows how to emulate Scheme-line pairs/lists with WASM GC structs/refs.
+;; Shows how to emulate Scheme-like pairs/lists with WASM GC structs/refs.
 ;; Also shows how to print such structures from within WASM, using minimal
 ;; IO imports from the host.
 ;;
@@ -8,7 +8,8 @@
     (import "env" "write_char" (func $write_char (param i32)))
     (import "env" "write_i32" (func $write_i32 (param i32)))
 
-    ;; ints are represented as ref i31.
+    ;; ints are represented as ref i31; bools and pairs get dedicated structs.
+
     (type $Bool (struct 
         (field i32)  ;; 0 = #f, nonzero = #t
     ))
@@ -80,16 +81,14 @@
         (call $emit_lparen)
         (local.set $cur (local.get $p))
 
-        ;; TODO fix loop structure
-        (block $done
-        (loop $loop
+        (loop $loop (block $breakloop
             ;; print car
             (call $emit_value (struct.get $Pair 0 (local.get $cur)))
 
             (local.set $cdr (struct.get $Pair 1 (local.get $cur)))
             
             ;; end of list?
-            (br_if $done (ref.is_null (local.get $cdr)))
+            (br_if $breakloop (ref.is_null (local.get $cdr)))
 
             ;; cdr is another pair, continue loop
             (if (ref.test (ref $Pair) (local.get $cdr))
@@ -104,7 +103,7 @@
                     (call $emit (i32.const 46)) ;; '.'
                     (call $emit (i32.const 32)) ;; space
                     (call $emit_value (local.get $cdr))
-                    br $done
+                    br $breakloop
                 )
             )
         ))
@@ -171,7 +170,22 @@
                             (call $mk_false)
                             (ref.null eq)))
                     (ref.null eq))))
-        
+
+        (call $emit_value (local.get $lst))
+        (call $emit_newline)
+
+        ;; Nested list with an empty list
+        (local.set $lst
+            (call $cons
+                (call $cons
+                    (call $mk_int (i32.const 10))
+                    (call $cons
+                        (call $mk_int (i32.const 20))
+                        (ref.null eq)))
+                (call $cons
+                    (ref.null eq)
+                    (ref.null eq))))
+
         (call $emit_value (local.get $lst))
         (call $emit_newline)
     )
