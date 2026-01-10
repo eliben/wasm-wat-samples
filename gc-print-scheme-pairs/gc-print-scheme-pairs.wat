@@ -8,13 +8,22 @@
     (import "env" "write_char" (func $write_char (param i32)))
     (import "env" "write_i32" (func $write_i32 (param i32)))
 
+    (memory 16)
+    (data (i32.const 100) "foobar")
+    (data (i32.const 106) "aragorn")
+
     ;; ints are represented as ref i31; bools and pairs get dedicated structs.
 
-    (type $Bool (struct 
+    (type $Bool (struct
         (field i32)  ;; 0 = #f, nonzero = #t
     ))
 
-    (type $Pair (struct 
+    (type $Symbol (struct
+        (field i32)  ;; index into linear memory
+        (field i32)  ;; length
+    ))
+
+    (type $Pair (struct
         (field (ref null eq))   ;; car
         (field (ref null eq))   ;; cdr
     ))
@@ -34,6 +43,26 @@
             (then (call $emit (i32.const 102))) ;; 'f'
             (else (call $emit (i32.const 116))) ;; 't'
         )
+    )
+
+    (func $emit_symbol (param $s (ref $Symbol))
+        (local $addr i32)
+        (local $len i32)
+        (local $i i32)
+        (local.set $addr (struct.get $Symbol 0 (local.get $s)))
+        (local.set $len  (struct.get $Symbol 1 (local.get $s)))
+
+        (local.set $i (i32.const 0))
+        (loop $loop (block $breakloop
+            (br_if $breakloop (i32.ge_u (local.get $i) (local.get $len)))
+            (call $emit
+                (i32.load8_u
+                    (i32.add
+                        (local.get $addr)
+                        (local.get $i))))
+            (local.set $i (i32.add (local.get $i) (i32.const 1)))
+            br $loop
+        ))
     )
 
     (func $emit_value (param $v (ref null eq))
@@ -62,6 +91,14 @@
             )
         )
 
+        ;; symbol
+        (if (ref.test (ref $Symbol) (local.get $v))
+            (then
+                (call $emit_symbol (ref.cast (ref $Symbol) (local.get $v)))
+                (return)
+            )
+        )
+
         ;; pair
         (if (ref.test (ref $Pair) (local.get $v))
             (then
@@ -86,7 +123,7 @@
             (call $emit_value (struct.get $Pair 0 (local.get $cur)))
 
             (local.set $cdr (struct.get $Pair 1 (local.get $cur)))
-            
+
             ;; end of list?
             (br_if $breakloop (ref.is_null (local.get $cdr)))
 
@@ -123,6 +160,10 @@
         (ref.i31 (local.get $x))
     )
 
+    (func $mk_symbol (param $addr i32) (param $len i32) (result (ref $Symbol))
+        (struct.new $Symbol (local.get $addr) (local.get $len))
+    )
+
     (func $cons (param $a (ref null eq)) (param $b (ref null eq)) (result (ref $Pair))
         (struct.new $Pair (local.get $a) (local.get $b))
     )
@@ -140,7 +181,20 @@
                         (call $cons
                             (call $mk_false)
                             (ref.null eq))))))
-        
+
+        (call $emit_value (local.get $lst))
+        (call $emit_newline)
+
+        ;; Create a list with ints and symbols
+        (local.set $lst
+            (call $cons
+                (call $mk_symbol (i32.const 100) (i32.const 6)) ;; "foobar"
+                (call $cons
+                    (call $mk_int (i32.const 99))
+                    (call $cons
+                        (call $mk_symbol (i32.const 106) (i32.const 7)) ;; "aragorn"
+                        (ref.null eq)))))
+
         (call $emit_value (local.get $lst))
         (call $emit_newline)
 
@@ -151,7 +205,7 @@
                 (call $cons
                     (call $mk_int (i32.const 2))
                     (call $mk_int (i32.const 3)))))
-        
+
         (call $emit_value (local.get $lst))
         (call $emit_newline)
 

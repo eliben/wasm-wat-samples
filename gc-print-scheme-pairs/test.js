@@ -28,6 +28,7 @@ const fs = require('fs');
 
     // Verify the collected output matches the expected printed list.
     assert.equal(out, `(42 #t 7 #f)
+(foobar 99 aragorn)
 (1 2 . 3)
 ((10 20) (#t #f))
 ((10 20) ())
