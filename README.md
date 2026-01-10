@@ -3,7 +3,7 @@
 Some sample **W**eb**A**ssembly **T**ext programs.
 
 [WebAssembly defines](https://en.wikipedia.org/wiki/WebAssembly) a portable
-binary-code format and a corresponding **text format** for executable programs
+binary code format and a corresponding **text format** for executable programs
 as well as software interfaces for facilitating interactions between such
 programs and their host environment.
 
@@ -15,18 +15,19 @@ of WASM mechanisms and related toolchains.
 ## How to run these samples
 
 Unless otherwise stated, each sample consists of a single `.wat` file and an
-accompanying `test.js` file. When the setup is more complicated, the directory's
-own README will have additional information.
+accompanying `test.js` file, housed in their own directory. When the setup is more
+complicated, the directory's wwn README will have additional information.
 
 To run a single sample, ``cd`` into its directory, and start by compiling the WAT file
 to WASM with [wasm-tools](https://github.com/bytecodealliance/wasm-tools) or some
-other WASM toolchain:
+other WASM toolchain. Let's use the `stack` example for demonstration:
 
 ```
-$ wasm-tools parse somefile.wat -o somefile.wasm
+$ cd stack
+$ wasm-tools parse stack.wat -o stack.wasm
 ```
 
-This creates a `somefile.wasm` binary, which `test.js` expects to find in its
+This creates a `stack.wasm` binary, which `test.js` expects to find in its
 own directory. To load and test the WASM, you'll need a recent
 Node.js installed, and run:
 
@@ -34,8 +35,18 @@ Node.js installed, and run:
 $ node test.js
 ```
 
-This will typically emit some output; if the loading failed or the loaded WASM
-behaves unexpectedly, the `test.js` script will report an error.
+This will typically emit some output and finish successfully if all went well;
+if the loading failed or the loaded WASM behaves unexpectedly, the `test.js`
+script will report an error.
+
+An alternative way to run a single sample is using the ``run-tests.js`` runner,
+mentioned in the next section. From the root directory of the project, run:
+
+```
+$ node run-tests.js stack
+```
+
+And it will automatically do the steps described above.
 
 ## Running all tests
 
@@ -47,8 +58,7 @@ $ node run-tests.js
 
 It should be run from the root directory of the project. This command
 will build all `.wat` files in all directories and run the corresponding
-``test.js`` files, summarizing the results. You can also ask it to build
-and run a single sample by providing its name as a parameter.
+``test.js`` files, summarizing the results.
 
 ## WASI documentation
 
