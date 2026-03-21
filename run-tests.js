@@ -21,6 +21,7 @@ const { spawnSync } = require('node:child_process');
 // dispatches each selected test directory through the build+run loop.
 function main() {
   const rootDir = __dirname;
+  const wasmToolsCommand = resolveWasmToolsCommand();
   const entries = fs.readdirSync(rootDir, { withFileTypes: true });
   const allDirs = entries
     .filter((entry) => entry.isDirectory() && !entry.name.startsWith('_') && !entry.name.startsWith('.'))
@@ -85,9 +86,9 @@ function main() {
     for (const watFile of watFiles) {
       const wasmFile = watFile.replace(/\.wat$/i, '.wasm');
       console.log(`\n[${dirName}] Building ${watFile} -> ${wasmFile}`);
-      const buildResult = runCommand('wasm-tools', ['parse', watFile, '-o', wasmFile], dirPath);
+      const buildResult = runCommand(wasmToolsCommand, ['parse', watFile, '-o', wasmFile], dirPath);
       if (!buildResult.ok) {
-        results.push({ name: dirName, status: 'FAIL', message: `wasm-tools parse ${watFile}: ${buildResult.message}` });
+        results.push({ name: dirName, status: 'FAIL', message: `${path.basename(wasmToolsCommand)} parse ${watFile}: ${buildResult.message}` });
         continue sampleloop;
       }
     }
@@ -103,6 +104,27 @@ function main() {
   }
 
   printSummary(results);
+}
+
+// Resolve the wasm-tools executable. WASMTOOLSPATH can point either to the
+// executable itself or to a directory containing it. If unset, preserve the
+// original behavior and rely on PATH lookup.
+function resolveWasmToolsCommand() {
+  const configured = process.env.WASMTOOLSPATH;
+  if (!configured) {
+    return 'wasm-tools';
+  }
+
+  const trimmed = configured.trim();
+  if (trimmed.length === 0) {
+    return 'wasm-tools';
+  }
+
+  if (fs.existsSync(trimmed) && fs.statSync(trimmed).isDirectory()) {
+    return path.join(trimmed, 'wasm-tools');
+  }
+
+  return trimmed;
 }
 
 // Spawn helper that runs the desired command synchronously in a subdirectory
