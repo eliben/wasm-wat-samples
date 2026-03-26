@@ -18,13 +18,14 @@ Unless otherwise stated, each sample consists of a single `.wat` file and an
 accompanying `test.js` file, housed in their own directory. When the setup is more
 complicated, the directory's wwn README will have additional information.
 
-To run a single sample, ``cd`` into its directory, and start by compiling the WAT file
-to WASM with [wasm-tools](https://github.com/bytecodealliance/wasm-tools) or some
-other WASM toolchain. Let's use the `stack` example for demonstration:
+To run a single sample, ``cd`` into its directory, and start by compiling the
+WAT file to WASM with [watgo](https://github.com/eliben/watgo),
+[wasm-tools](https://github.com/bytecodealliance/wasm-tools) or some other WASM
+toolchain. Let's use the `stack` example for demonstration:
 
 ```
 $ cd stack
-$ wasm-tools parse stack.wat -o stack.wasm
+$ watgo parse stack.wat -o stack.wasm
 ```
 
 This creates a `stack.wasm` binary, which `test.js` expects to find in its
