@@ -8,20 +8,36 @@
 //
 //  Will load/run the samples in all sub-directories.
 //
-// The runner will compile all .wat files to .wasm with wasm-tools (which has
-// to be installed and available in PATH!), and will then run the test.js
-// test file in each directory it loads.
+// The runner compiles all .wat files to .wasm using the command configured in
+// WAT2WASM, then runs the test.js file in each directory it loads. If WAT2WASM
+// is unset, the default compiler command is 'watgo'.
 'use strict';
 
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
+const DEFAULT_WAT2WASM = 'watgo';
+
 // Entry point: builds the directory list, parses CLI filters, then
 // dispatches each selected test directory through the build+run loop.
 function main() {
   const rootDir = __dirname;
-  const wasmToolsCommand = resolveWasmToolsCommand();
+  const wat2WasmCommand = resolveWat2WasmCommand();
+  console.log(`[config] Using WAT-to-WASM command: ${wat2WasmCommand.display}`);
+  console.log('[config] Validating WAT-to-WASM command...');
+  const validation = runCommand(
+    wat2WasmCommand.command,
+    ['help'],
+    __dirname,
+    'ignore',
+  );
+  if (!validation.ok) {
+    console.error(`[config] WAT-to-WASM validation failed: ${validation.message}`);
+    process.exitCode = 1;
+    return;
+  }
+  console.log('[config] WAT-to-WASM command is working.');
   const entries = fs.readdirSync(rootDir, { withFileTypes: true });
   const allDirs = entries
     .filter((entry) => entry.isDirectory() && !entry.name.startsWith('_') && !entry.name.startsWith('.'))
@@ -86,9 +102,13 @@ function main() {
     for (const watFile of watFiles) {
       const wasmFile = watFile.replace(/\.wat$/i, '.wasm');
       console.log(`\n[${dirName}] Building ${watFile} -> ${wasmFile}`);
-      const buildResult = runCommand(wasmToolsCommand, ['parse', watFile, '-o', wasmFile], dirPath);
+      const buildResult = runCommand(
+        wat2WasmCommand.command,
+        ['parse', watFile, '-o', wasmFile],
+        dirPath,
+      );
       if (!buildResult.ok) {
-        results.push({ name: dirName, status: 'FAIL', message: `${path.basename(wasmToolsCommand)} parse ${watFile}: ${buildResult.message}` });
+        results.push({ name: dirName, status: 'FAIL', message: `${wat2WasmCommand.display} ${watFile}: ${buildResult.message}` });
         continue sampleloop;
       }
     }
@@ -106,31 +126,23 @@ function main() {
   printSummary(results);
 }
 
-// Resolve the wasm-tools executable. WASMTOOLSPATH can point either to the
-// executable itself or to a directory containing it. If unset, preserve the
-// original behavior and rely on PATH lookup.
-function resolveWasmToolsCommand() {
-  const configured = process.env.WASMTOOLSPATH;
-  if (!configured) {
-    return 'wasm-tools';
+// Resolve the WAT-to-WASM compiler command from WAT2WASM. The value is
+// expected to be an executable name or path.
+function resolveWat2WasmCommand() {
+  const configured = process.env.WAT2WASM;
+  const command = configured && configured.trim().length > 0 ? configured.trim() : DEFAULT_WAT2WASM;
+
+  if (command.length === 0) {
+    throw new Error('WAT2WASM did not contain a valid command.');
   }
 
-  const trimmed = configured.trim();
-  if (trimmed.length === 0) {
-    return 'wasm-tools';
-  }
-
-  if (fs.existsSync(trimmed) && fs.statSync(trimmed).isDirectory()) {
-    return path.join(trimmed, 'wasm-tools');
-  }
-
-  return trimmed;
+  return { display: command, command };
 }
 
 // Spawn helper that runs the desired command synchronously in a subdirectory
 // and reports success/failure with context.
-function runCommand(command, args, cwd) {
-  const result = spawnSync(command, args, { cwd, stdio: 'inherit' });
+function runCommand(command, args, cwd, stdio = 'inherit') {
+  const result = spawnSync(command, args, { cwd, stdio });
 
   if (result.error) {
     return { ok: false, message: `Failed to start ${command}: ${result.error.message}` };
