@@ -19,10 +19,13 @@ const importObject = {
     // Get two exported functions from wasm.
     let times2 = obj.instance.exports.times2;
     let times3 = obj.instance.exports.times3;
+    let times2flat = obj.instance.exports.times2flat;
 
     console.log('times2(12) =>', times2(12));
     console.log('times3(12) =>', times3(12));
+    console.log('times2flat(12) =>', times2flat(12));
 
     assert.equal(times2(42), 84);
     assert.equal(times3(53), 159);
+    assert.equal(times2flat(42), 84);
 })();

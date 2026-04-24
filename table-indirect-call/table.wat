@@ -45,4 +45,11 @@
         local.get 0
         (call_indirect (type $int2int) (i32.const 17))
     )
+
+    (func (export "times2flat") (type $int2int)
+        ;; The same indirect call as times2, but written in flat syntax.
+        local.get 0
+        i32.const 16
+        call_indirect (type $int2int)
+    )
 )
