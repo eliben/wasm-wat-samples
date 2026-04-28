@@ -47,4 +47,13 @@
     (func (export "read_as_i8u") (param $addr i32) (result i32)
         (i32.load8_u (local.get $addr))
     )
+
+    ;; Add $delta to the i8 at $addr, and write the result back to $addr.
+    (func (export "add_to_byte") (param $addr i32) (param $delta i32)
+        (i32.store8
+            (local.get $addr)
+            (i32.add
+                (i32.load8_u (local.get $addr))
+                (local.get $delta)))
+    )
 )

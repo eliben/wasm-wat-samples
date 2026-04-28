@@ -67,4 +67,9 @@ function memdump(mem, start, len) {
     let read_as_i8u = obj.instance.exports.read_as_i8u;
     assert.equal(read_as_i8u(2048+1), 1);
     assert.equal(read_as_i8u(2048+7), 7);
+
+    // Test add_to_byte
+    let add_to_byte = obj.instance.exports.add_to_byte;
+    add_to_byte(2048+1, 10);
+    assert.equal(read_as_i8u(2048+1), 11);
 })();
